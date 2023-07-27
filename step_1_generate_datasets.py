@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
-OUTPUT_DIRECTORY = f"{DIRECTORY}/datasets/original"
+ORIGINAL_DIRECTORY = f"{DIRECTORY}/datasets/original"
 
 # These are the distributions that can be used in each leaf node
 DISTRIBUTIONS = [
@@ -149,20 +149,20 @@ def generate_dataset(n, f, c):
     tree = generate_tree(5, allowed_splits)
 
     # Figure out what `k` is needed to censor each particular instance
-    ks = [1e9]
+    ks = []
     for inst in instances:
-        time = max(traverse_tree(tree, inst), 1e-6)
+        time = max(traverse_tree(tree, inst), 1e-9)
         u = 1 - np.random.random() ** 2
 
         inst[0] = time
         inst[1] = u
         ks.append(time / u)
 
-    # Find a `k` such that about `100c` percent of the instances is censored
+    # Find a `k` such that `100c` percent of the instances is censored
     ks = sorted(ks)
-    k = ks[int(n * (1 - c))]
+    k = ks[int(n * (1 + 1e-9 - c))] - 1e-9
 
-    # Apply the censoring with the right `k`
+    # Apply censoring to the chosen instances
     for inst in instances:
         censor = k * inst[1]
 
@@ -177,7 +177,7 @@ def generate_dataset(n, f, c):
 
     return instances
 
-if __name__ == "__main__":
+def main():
     # The settings to generate with
     SETTINGS = [
         (n, f, c, i)
@@ -187,22 +187,22 @@ if __name__ == "__main__":
             for i in range(1)
     ]
 
-    output_parent_directory = "/".join(OUTPUT_DIRECTORY.split("/")[:-1])
+    output_parent_directory = "/".join(ORIGINAL_DIRECTORY.split("/")[:-1])
     if not os.path.exists(output_parent_directory):
         os.mkdir(output_parent_directory)
-    if not os.path.exists(OUTPUT_DIRECTORY):
-        os.mkdir(OUTPUT_DIRECTORY)
+    if not os.path.exists(ORIGINAL_DIRECTORY):
+        os.mkdir(ORIGINAL_DIRECTORY)
 
     # Remove all previously generated datasets
-    for filename in os.listdir(OUTPUT_DIRECTORY):
+    for filename in os.listdir(ORIGINAL_DIRECTORY):
         if filename.startswith("generated_dataset_"):
-            os.remove(f"{OUTPUT_DIRECTORY}/{filename}")
+            os.remove(f"{ORIGINAL_DIRECTORY}/{filename}")
 
     # Generate a dataset for each setting
     for n, f, c, i in SETTINGS:
         instances = generate_dataset(n, f, c / 100)
 
-        file = open(f"{OUTPUT_DIRECTORY}/generated_dataset_{n}_{f}_{c}_{i}.txt", "w")
+        file = open(f"{ORIGINAL_DIRECTORY}/generated_dataset_{n}_{f}_{c}_{i}.txt", "w")
         file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
         file.write("\n")
         for inst in instances:
@@ -210,6 +210,9 @@ if __name__ == "__main__":
             file.write("\n")
         file.close()
 
-        print(f"\033[35;1mGenerated dataset {n}_{f}_{c}_{i}\033[0m")
+        print(f"\033[35mGenerated dataset \033[1m{n}_{f}_{c}_{i}\033[0m")
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()

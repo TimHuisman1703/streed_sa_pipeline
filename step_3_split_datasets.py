@@ -1,44 +1,56 @@
 import numpy as np
 import os
 import shutil
-from utils import files_in_directory
+from step_1_generate_datasets import ORIGINAL_DIRECTORY
+from step_2_binarize_datasets import NUMERIC_DIRECTORY, BINARY_DIRECTORY
+from utils import files_in_directory, parse_line
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
-ORIGINAL_DIRECTORY = f"{DIRECTORY}/datasets"
-BINARY_DIRECTORY = f"{DIRECTORY}/streed2/data/survival-analysis"
-
-K = 5
 
 SEED = 4136121025
 np.random.seed(SEED)
 
-if __name__ == "__main__":
-    for directory in [ORIGINAL_DIRECTORY, BINARY_DIRECTORY]:
-        for type in ["train", "test"]:
-            path = f"{directory}/{type}"
+K = 5
+
+def main():
+    for directory in [ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY]:
+        for section in ["train", "test"]:
+            path = f"{directory}/{section}"
             if os.path.exists(path):
                 shutil.rmtree(path)
             os.mkdir(path)
 
     for filename in [j[:-4] for j in files_in_directory(ORIGINAL_DIRECTORY)]:
         f = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt")
-        n = f.read().strip().count("\n")
+        lines = f.read().strip().split("\n")
         f.close()
 
-        indices = [*range(n)]
-        np.random.shuffle(indices)
-        partitions = [{*indices[j * len(indices) // K:(j + 1) * len(indices) // K]} for j in range(K)]
+        instances = []
+        for line in lines[1:]:
+            inst = parse_line(line)
+            instances.append(inst)
+        f.close()
+
+        indices_per_event = [[], []]
+        for i in range(len(instances)):
+            indices_per_event[instances[i][1]].append(i)
+        
+        partitions = [set() for _ in range(K)]
+        for event in range(2):
+            curr_indices = indices_per_event[event]
+            np.random.shuffle(curr_indices)
+            curr_partitions = [{*curr_indices[j * len(curr_indices) // K:(j + 1) * len(curr_indices) // K]} for j in range(K)]
+            for i in range(K):
+                partitions[i] |= curr_partitions[i]
 
         for i, partition in enumerate(partitions):
-            for binary in [False, True]:
-                directory = [ORIGINAL_DIRECTORY, BINARY_DIRECTORY][binary]
-
-                f = open(f"{directory}/{filename}{'_binary' * binary}.txt")
+            for directory in [ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY]:
+                f = open(f"{directory}/{filename}.txt")
                 lines = f.read().strip().split("\n")
                 f.close()
 
-                info_line = [f"{lines[0]}\n", ""][binary]
-                data_lines = lines[not binary:]
+                info_line = lines[0] + "\n"
+                data_lines = lines[1:]
 
                 train_lines, test_lines = [], []
                 for j, line in enumerate(data_lines):
@@ -47,14 +59,17 @@ if __name__ == "__main__":
                     else:
                         train_lines.append(line)
 
-                for type, lines in [("train", train_lines), ("test", test_lines)]:
-                    path = f"{directory}/{type}/{filename}_{i}{'_binary' * binary}.txt"
+                for section, lines in [("train", train_lines), ("test", test_lines)]:
+                    path = f"{directory}/{section}/{filename}_partition_{i}.txt"
 
                     f = open(path, "w")
                     f.write(info_line)
                     f.write("\n".join(lines))
                     f.close()
 
-        print(f"\033[35;1mSplit {filename}\033[0m")
+        print(f"\033[35mSplit \033[1m{filename}\033[0m")
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()

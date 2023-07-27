@@ -1,9 +1,9 @@
 import os
 import shutil
+from step_1_generate_datasets import ORIGINAL_DIRECTORY
 from utils import files_in_directory, parse_line
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
-ORIGINAL_DIRECTORY = f"{DIRECTORY}/datasets/original"
 NUMERIC_DIRECTORY = f"{DIRECTORY}/datasets/numeric"
 BINARY_DIRECTORY = f"{DIRECTORY}/datasets/binary"
 
@@ -106,7 +106,7 @@ def turn_binary(feature_names, instances):
 
     return new_feature_names, new_instances, new_feature_meanings
 
-if __name__ == "__main__":
+def main():
     for output_directory in [NUMERIC_DIRECTORY, BINARY_DIRECTORY]:
         # Remove all previously converted datasets
         if not os.path.exists(output_directory):
@@ -177,9 +177,12 @@ if __name__ == "__main__":
         f.close()
 
         # Print progress
-        print(f"\033[35;1mConverted {str(input_filename)} ({len(binary_instances)} instances)\033[0m")
-        print(f"\033[34m  - Original    {len(instances[0]) - 2} features\033[0m")
-        print(f"\033[34m  - Numeric     {len(numeric_instances[0]) - 2} features\033[0m")
-        print(f"\033[34m  - Binary      {len(binary_instances[0]) - 2} features\033[0m")
+        print(f"\033[35mConverted \033[1m{str(input_filename)} ({len(binary_instances)} instances)\033[0m")
+        print(f"\033[34m  - Original    \033[1m{len(instances[0]) - 2} features\033[0m")
+        print(f"\033[34m  - Numeric     \033[1m{len(numeric_instances[0]) - 2} features\033[0m")
+        print(f"\033[34m  - Binary      \033[1m{len(binary_instances[0]) - 2} features\033[0m")
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()
