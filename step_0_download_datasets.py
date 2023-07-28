@@ -23,8 +23,9 @@ def main():
         # Limit the amount of features in the dataset
         if df.shape[1] > 100:
             continue
-
-        if dataset_name == "d.oropha.rec":
+        
+        # Remove specific datasets that caused problems
+        if dataset_name in ["d.oropha.rec", "nki70"]:
             continue
 
         # Drop instances with NaN-values

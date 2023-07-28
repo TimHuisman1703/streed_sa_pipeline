@@ -1,6 +1,6 @@
 #=
 julia
-include("C:/Users/timhu/Documents/TUDelft/Courses/RP/Continuation/step_6_run_ost.jl")
+include("C:/Users/timhu/Documents/TUDelft/Courses/RP/streed_sa_pipeline/step_6_run_ost.jl")
 
 =#
 
@@ -21,12 +21,6 @@ function serialize_tree(tree, node_idx)
     else
         attribute = "x['" * string(IAI.get_split_feature(tree, node_idx)) * "']"
         feature_description = "lambda x: " * attribute
-        
-        if IAI.missing_goes_lower(tree, node_idx)
-            feature_description *= " == 'missing' or " * attribute
-        else
-            feature_description *= " != 'missing' and " * attribute
-        end
 
         if IAI.is_parallel_split(tree, node_idx)
             feature_description *= " < " * string(IAI.get_split_threshold(tree, node_idx))
@@ -53,7 +47,6 @@ open(DIRECTORY * "/output/settings.txt") do f
     max_depth = 0
     max_num_nodes = 0
     cost_complexity = 0
-    min_deaths_per_leaf = 1
     hypertuning = false
 
     continuing = true
@@ -63,7 +56,7 @@ open(DIRECTORY * "/output/settings.txt") do f
     while true
         continuing = !eof(f);
 
-        df = CSV.read(DIRECTORY * "/datasets/" * file * ".txt", DataFrame, missingstring="nan", pool=true)
+        df = CSV.read(DIRECTORY * "/datasets/original/" * file * ".txt", DataFrame, pool=true)
 
         events = df[!, "event"] .== 1
         times = df[!, "time"]
@@ -76,7 +69,7 @@ open(DIRECTORY * "/output/settings.txt") do f
                     missingdatamode=:separate_class,
                     random_seed=1,
                     skip_curve_fitting=false,
-                    death_minbucket=min_deaths_per_leaf,
+                    death_minbucket=0,
                 ),
                 max_depth=0:max_depth,
             )
@@ -86,7 +79,7 @@ open(DIRECTORY * "/output/settings.txt") do f
                 random_seed=1,
                 skip_curve_fitting=false,
                 cp=cost_complexity,
-                death_minbucket=min_deaths_per_leaf,
+                death_minbucket=0,
                 max_depth=max_depth,
             )
         end
@@ -97,7 +90,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         if warming_up
             println("\033[35;1mWarming up\033[0m")
         else
-            println("\033[35;1mRunning " * file * ".csv {depth = " * string(max_depth) * "}\033[0m")
+            println("\033[35;1mRunning " * file * ".txt {depth = " * string(max_depth) * "}\033[0m")
         end
 
         start_time = time()
@@ -136,7 +129,6 @@ open(DIRECTORY * "/output/settings.txt") do f
         max_depth = get!(settings, "max-depth", 3)
         max_num_nodes = get!(settings, "max-num-nodes", 7)
         cost_complexity = get!(settings, "cost-complexity", 0)
-        min_deaths_per_leaf = get!(settings, "min-deaths-per-leaf", 1)
         hypertuning = get!(settings, "mode", "direct") == "hyper"
     end
 end
