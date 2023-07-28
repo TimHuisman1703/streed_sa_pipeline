@@ -1,18 +1,16 @@
 import os
 import shutil
-from step_1_generate_datasets import ORIGINAL_DIRECTORY
 from utils import files_in_directory, parse_line
-
-DIRECTORY = os.path.realpath(os.path.dirname(__file__))
-NUMERIC_DIRECTORY = f"{DIRECTORY}/datasets/numeric"
-BINARY_DIRECTORY = f"{DIRECTORY}/datasets/binary"
+from utils import ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY
 
 MAX_BINARIZATIONS_PER_FEATURE = 10
 
 def remove_redundant_binary_features(feature_names, instances):
+    # Create new instances with time and event already added
     new_feature_names = ["time", "event"]
     new_instances = [j[:2] for j in instances]
 
+    # The binary value sequences already seen (000...000 is uninformative and therefore already included)
     seen = set([
         "0" * (len(instances[0]) - 1)
     ])
@@ -20,13 +18,18 @@ def remove_redundant_binary_features(feature_names, instances):
     for i in range(2, len(instances[0])):
         values = [inst[i] for inst in instances]
 
+        # Check whether the variable is binary
         if len(set(values) - set([0, 1])) == 0:
             key = "".join(str(inst[i]) for inst in instances)
             complement_key = "".join(str(1 - inst[i]) for inst in instances)
+
+            # Check whether this binary value sequence already exists in the dataset
+            # If so, skip it
             if key in seen or complement_key in seen:
                 continue
             seen.add(key)
 
+        # Leave the variable in the dataset
         new_feature_names.append(feature_names[i])
         for k in range(len(new_instances)):
             new_instances[k].append(instances[k][i])
@@ -92,7 +95,7 @@ def turn_binary(feature_names, instances):
                 # Create binary variables using this threshold
                 for k in range(len(instances)):
                     new_instances[k].append(int(instances[k][i] > threshold))
-                
+
                 # Save data
                 new_feature_name = f"NumFeat{converted_features_amount}"
                 new_feature_names.append(new_feature_name)
@@ -113,7 +116,7 @@ def main():
             os.mkdir(output_directory)
         for filename in files_in_directory(output_directory):
             os.remove(f"{output_directory}/{filename}")
-        
+
         # Create a folder for metadata
         if os.path.exists(f"{output_directory}/feature_meanings"):
             shutil.rmtree(f"{output_directory}/feature_meanings")
@@ -122,13 +125,13 @@ def main():
     for input_filename in files_in_directory(ORIGINAL_DIRECTORY):
         name = input_filename[:-4]
 
-        instances = []
-        feature_names = []
-
+        # Read instances from file
         f = open(f"{ORIGINAL_DIRECTORY}/{input_filename}")
         lines = f.read().strip().split("\n")
         f.close()
 
+        instances = []
+        feature_names = []
         feature_names = lines[0].split(",")
         for line in lines[1:]:
             inst = parse_line(line)
@@ -177,10 +180,10 @@ def main():
         f.close()
 
         # Print progress
-        print(f"\033[35mConverted \033[1m{str(input_filename)} ({len(binary_instances)} instances)\033[0m")
-        print(f"\033[34m  - Original    \033[1m{len(instances[0]) - 2} features\033[0m")
-        print(f"\033[34m  - Numeric     \033[1m{len(numeric_instances[0]) - 2} features\033[0m")
-        print(f"\033[34m  - Binary      \033[1m{len(binary_instances[0]) - 2} features\033[0m")
+        print(f"\033[35mConverted \033[1m{str(input_filename)}\033[0;35m (\033[1m{len(binary_instances)}\033[0;35m instances)\033[0m")
+        print(f"\033[34m  - Original    \033[1m{len(instances[0]) - 2}\033[0;34m features\033[0m")
+        print(f"\033[34m  - Numeric     \033[1m{len(numeric_instances[0]) - 2}\033[0;34m features\033[0m")
+        print(f"\033[34m  - Binary      \033[1m{len(binary_instances[0]) - 2}\033[0;34m features\033[0m")
 
     print("\033[32;1mDone!\033[0m")
 

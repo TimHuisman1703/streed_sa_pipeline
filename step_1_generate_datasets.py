@@ -1,10 +1,13 @@
 import numpy as np
 import os
-
-DIRECTORY = os.path.realpath(os.path.dirname(__file__))
-ORIGINAL_DIRECTORY = f"{DIRECTORY}/datasets/original"
+from utils import files_in_directory
+from utils import ORIGINAL_DIRECTORY
 
 # These are the distributions that can be used in each leaf node
+#   - Exponential(lambda)
+#   - Weibull(k, lambda)
+#   - Lognormal(mu, sigma^2)
+#   - Gamma(k, theta)
 DISTRIBUTIONS = [
     ("exp", 0.3),
     ("exp", 0.4),
@@ -52,7 +55,7 @@ def generate_tree(depth, splits):
     if depth == 0:
         return DISTRIBUTIONS[np.random.randint(len(DISTRIBUTIONS))]
 
-    # Copy the splits and sample
+    # Filter only the possible splits and sample a value from a random one
     allowed_splits = [(i, j) for i, j in enumerate(splits) if len(j) > 1]
     feature, elements = allowed_splits[np.random.randint(len(allowed_splits))]
 
@@ -116,7 +119,7 @@ def traverse_tree(tree, instance):
 
 def generate_dataset(n, f, c):
     instances = []
-    
+
     for _ in range(n):
         # Placeholder values for `time` and `event`
         instance = [0, 0]
@@ -146,7 +149,7 @@ def generate_dataset(n, f, c):
         allowed_splits.append({*"ABCDE"})
 
     # Generate the ground truth tree
-    tree = generate_tree(5, allowed_splits)
+    tree = generate_tree(2, allowed_splits)
 
     # Figure out what `k` is needed to censor each particular instance
     ks = []
@@ -187,6 +190,7 @@ def main():
             for i in range(1)
     ]
 
+    # Create necessary directories
     output_parent_directory = "/".join(ORIGINAL_DIRECTORY.split("/")[:-1])
     if not os.path.exists(output_parent_directory):
         os.mkdir(output_parent_directory)
@@ -194,7 +198,7 @@ def main():
         os.mkdir(ORIGINAL_DIRECTORY)
 
     # Remove all previously generated datasets
-    for filename in os.listdir(ORIGINAL_DIRECTORY):
+    for filename in files_in_directory(ORIGINAL_DIRECTORY):
         if filename.startswith("generated_dataset_"):
             os.remove(f"{ORIGINAL_DIRECTORY}/{filename}")
 
@@ -202,7 +206,9 @@ def main():
     for n, f, c, i in SETTINGS:
         instances = generate_dataset(n, f, c / 100)
 
-        file = open(f"{ORIGINAL_DIRECTORY}/generated_dataset_{n}_{f}_{c}_{i}.txt", "w")
+        filename = f"generated_dataset_{n:05}_{f}_{c}_{i}"
+
+        file = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt", "w")
         file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
         file.write("\n")
         for inst in instances:
@@ -210,7 +216,7 @@ def main():
             file.write("\n")
         file.close()
 
-        print(f"\033[35mGenerated dataset \033[1m{n}_{f}_{c}_{i}\033[0m")
+        print(f"\033[35mCreated \033[1m{filename}\033[0m")
 
     print("\033[32;1mDone!\033[0m")
 

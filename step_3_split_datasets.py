@@ -1,11 +1,8 @@
 import numpy as np
 import os
 import shutil
-from step_1_generate_datasets import ORIGINAL_DIRECTORY
-from step_2_binarize_datasets import NUMERIC_DIRECTORY, BINARY_DIRECTORY
 from utils import files_in_directory, parse_line
-
-DIRECTORY = os.path.realpath(os.path.dirname(__file__))
+from utils import ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY
 
 SEED = 4136121025
 np.random.seed(SEED)
@@ -13,6 +10,7 @@ np.random.seed(SEED)
 K = 5
 
 def main():
+    # Empty each train/test-directory
     for directory in [ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY]:
         for section in ["train", "test"]:
             path = f"{directory}/{section}"
@@ -21,6 +19,7 @@ def main():
             os.mkdir(path)
 
     for filename in [j[:-4] for j in files_in_directory(ORIGINAL_DIRECTORY)]:
+        # Read instances from file
         f = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt")
         lines = f.read().strip().split("\n")
         f.close()
@@ -31,20 +30,26 @@ def main():
             instances.append(inst)
         f.close()
 
+        # Group instances based on observation status
         indices_per_event = [[], []]
         for i in range(len(instances)):
             indices_per_event[instances[i][1]].append(i)
-        
+
+        # Take `100c` percent of each group, make `K` partitions
         partitions = [set() for _ in range(K)]
         for event in range(2):
             curr_indices = indices_per_event[event]
             np.random.shuffle(curr_indices)
             curr_partitions = [{*curr_indices[j * len(curr_indices) // K:(j + 1) * len(curr_indices) // K]} for j in range(K)]
+            if event == 1:
+                curr_partitions = curr_partitions[::-1]
             for i in range(K):
                 partitions[i] |= curr_partitions[i]
 
+        # Create train/test-files for each partition
         for i, partition in enumerate(partitions):
             for directory in [ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY]:
+                # Read lines from file
                 f = open(f"{directory}/{filename}.txt")
                 lines = f.read().strip().split("\n")
                 f.close()
@@ -52,6 +57,7 @@ def main():
                 info_line = lines[0] + "\n"
                 data_lines = lines[1:]
 
+                # Divide lines into train- and test-group
                 train_lines, test_lines = [], []
                 for j, line in enumerate(data_lines):
                     if j in partition:
@@ -59,6 +65,7 @@ def main():
                     else:
                         train_lines.append(line)
 
+                # Write the files
                 for section, lines in [("train", train_lines), ("test", test_lines)]:
                     path = f"{directory}/{section}/{filename}_partition_{i}.txt"
 

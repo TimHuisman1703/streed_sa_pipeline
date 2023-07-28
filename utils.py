@@ -2,6 +2,9 @@ from math import log
 import os
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
+ORIGINAL_DIRECTORY = f"{DIRECTORY}/datasets/original"
+NUMERIC_DIRECTORY = f"{DIRECTORY}/datasets/numeric"
+BINARY_DIRECTORY = f"{DIRECTORY}/datasets/binary"
 
 def parse_value(value):
     for op in [int, float, str]:
@@ -129,7 +132,7 @@ class Tree:
         if instances:
             self.calculate_label()
             self.calculate_error()
-    
+
     def size(self):
         if not self.trees:
             return 0
@@ -142,14 +145,10 @@ class Tree:
         if not self.trees:
             return (self.theta, self.distribution)
 
-        try:
-            if not self.criterium(instance.feats):
-                return self.trees[0].traverse(instance, store)
-            else:
-                return self.trees[1].traverse(instance, store)
-        except:
-            print(self)
-            print(instance.feats)
+        if not self.criterium(instance.feats):
+            return self.trees[0].traverse(instance, store)
+        else:
+            return self.trees[1].traverse(instance, store)
 
     def calculate_label(self):
         events = [inst.event for inst in self.instances]
@@ -229,13 +228,20 @@ class Tree:
     def __repr__(self):
         return self.to_string([]).strip()
 
-def get_feature_meanings(filename):
-    if len(filename.split("/")):
-        filename = "_".join(filename.split("/")[1].split("_")[:-1])
+def get_feature_meanings(type, filename):
+    if len(filename.split("_partition_")):
+        filename = filename.replace("train/", "").replace("test/", "").split("_partition_")[0]
 
-    f = open(f"{DIRECTORY}/metadata/{filename}_features.txt")
-    feature_meanings = f.read().split("\n")
+    f = open(f"{DIRECTORY}/datasets/{type}/feature_meanings/{filename}.txt")
+    lines = f.read().strip().split("\n")
     f.close()
+
+    feature_meanings = {}
+    for line in lines:
+        idx = line.find(" = ")
+        key = line[:idx]
+        value = line[idx + 3:]
+        feature_meanings[key] = value
 
     return feature_meanings
 
@@ -245,7 +251,7 @@ def read_dataset(filename):
     f.close()
 
     keys, lines = lines[0].split(","), lines[1:]
-    
+
     instances = []
     for values in [parse_line(line, sep=",") for line in lines]:
         inst = Instance({key: value for key, value in zip(keys, values)})

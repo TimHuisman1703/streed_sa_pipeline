@@ -1,47 +1,33 @@
-from step_4_generate_settings import parse_settings
 import os
+import shutil
+from step_4_generate_settings import parse_settings
 from subprocess import Popen, PIPE
 import time
 from utils import get_feature_meanings
+from utils import DIRECTORY, BINARY_DIRECTORY
 
-DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 EXEC_PATH = f"{DIRECTORY}/streed2/out/build/x64-Release/STREED.exe"
+STREED_DIRECTORY = f"{DIRECTORY}/streed2/data/survival-analysis"
 
 TIME = 600
-PARETO_PRUNING = False
 
-def dominates(a, b):
-    return a[0] <= b[0] and a[1] <= b[1] and a[2] <= b[2] and a[3] == b[3]
+def make_streed_compatible(input_path, output_path):
+    f = open(input_path)
+    lines = f.read().strip().split("\n")
+    f.close()
 
-def add_to_front(front, a):
-    i = 0
+    feature_names = lines[0].split(",")[2:]
+    new_lines = [line.replace(",", " ") for line in lines[1:]]
 
-    while i < len(front):
-        if dominates(a, front[i]):
-            front.pop(i)
-        elif dominates(front[i], a):
-            return False
-        else:
-            i += 1
+    f = open(output_path, "w")
+    f.write("\n".join(new_lines))
+    f.close()
 
-    pareto_front.append(a)
-    return True
+    return feature_names
 
-pareto_front = []
-
-def serialize_tree_with_features(tree, feature_meanings):
-    if len(tree) == 1:
-        return tree
-    else:
-        feature, left, right = tree
-        feature_meaning = feature_meanings[feature]
-        return f"[{feature_meaning},{serialize_tree_with_features(left, feature_meanings)},{serialize_tree_with_features(right, feature_meanings)}]"
-
-def run_streed(params):
-    global pareto_front
-
+def run_streed(parameters):
     args = []
-    for key, value in params.items():
+    for key, value in parameters.items():
         if key == "test-file":
             continue
         args.append(f"-{key}")
@@ -52,19 +38,10 @@ def run_streed(params):
     args.extend([
         "-task", "survival-analysis",
         "-use-lower-bound", "false",
-        *["-train-test-split", "0.25"] * (params["mode"] == "hyper"),
+        *["-train-test-split", "0.25"] * (parameters["mode"] == "hyper"),
     ])
 
     print(f"\033[35;1m{EXEC_PATH} {' '.join(args)}\033[0m")
-
-    pareto_key = None
-    if PARETO_PRUNING:
-        pareto_key = [int(j) for j in params['file'].split("_")[-5:-1]]
-        pareto_key[2] = params["max-depth"]
-
-        if any(dominates(i, pareto_key) for i in pareto_front):
-            print(f"\033[30;1mPareto dominated\033[0m")
-            return (-1, -1, -1)
 
     proc = Popen([EXEC_PATH, *args], stdin=PIPE, stdout=PIPE)
     out, _ = proc.communicate()
@@ -78,49 +55,73 @@ def run_streed(params):
     try:
         tree = tree_line.split()[-1]
     except:
-        if PARETO_PRUNING:
-            add_to_front(pareto_front, pareto_key)
-
-        print(f"\033[31;1mOut of time: {time:.3f} seconds\033[0m")
         return -1, None
 
-    print(tree)
-    print(f"\033[34;1mTime: {time:.3f} seconds\033[0m")
     return time, tree
 
-if __name__ == "__main__":
+def serialize_tree_with_features(tree, feature_names, feature_meanings):
+    if len(tree) == 1:
+        return tree
+    else:
+        feature, left, right = tree
+        feature_name = feature_names[feature]
+        feature_meaning = feature_meanings.get(feature_name, f"lambda x: x[\"{feature_name}\"]")
+
+        left_child = serialize_tree_with_features(left, feature_names, feature_meanings)
+        right_child = serialize_tree_with_features(right, feature_names, feature_meanings)
+        return f"[{feature_meaning},{left_child},{right_child}]"
+
+def main():
     total_start_time = time.time()
+
+    shutil.rmtree(STREED_DIRECTORY)
+    for section in ["", "/train", "/test"]:
+        os.mkdir(f"{STREED_DIRECTORY}{section}")
 
     params_settings = parse_settings(f"{DIRECTORY}/output/settings.txt")
 
     results = []
     try:
         for params in params_settings:
-            filename = params["file"]
-            params["file"] = f"{DIRECTORY}/streed2/data/survival-analysis/{filename}_binary.txt"
+            train_filename = params["file"]
+            train_path = f"{BINARY_DIRECTORY}/{train_filename}.txt"
+            params["file"] = train_path.replace(BINARY_DIRECTORY, STREED_DIRECTORY)
             test_filename = params["test-file"]
-            params["test-file"] = f"{DIRECTORY}/streed2/data/survival-analysis/{test_filename}_binary.txt"
+            test_path = f"{BINARY_DIRECTORY}/{test_filename}.txt"
+            params["test-file"] = test_path.replace(BINARY_DIRECTORY, STREED_DIRECTORY)
+
+            feature_names = make_streed_compatible(train_path, params["file"])
+            make_streed_compatible(test_path, params["test-file"])
 
             time_duration, tree = run_streed(params)
 
-            feature_meanings = get_feature_meanings(filename)
-            tree = serialize_tree_with_features(eval(tree), feature_meanings)
+            if time_duration >= 0:
+                print(f"\033[33;1m{tree}\033[0m")
+                print(f"\033[34mTime: \033[1m{time_duration:.4f}\033[0;34m seconds")
+            else:
+                print(f"\033[31;1mOut of time: {time_duration:.3f} seconds\033[0m")
+
+            feature_meanings = get_feature_meanings("binary", train_filename)
+            tree = serialize_tree_with_features(eval(tree), feature_names, feature_meanings)
 
             results.append((params, time_duration, tree))
 
-            params["file"] = filename
+            params["file"] = train_filename
             params["test-file"] = test_filename
     except KeyboardInterrupt:
         print("\033[33;1mHalted program!\033[0m")
 
     f = open(f"{DIRECTORY}/output/streed_trees.csv", "w")
     f.write("id;settings;time;tree\n")
-    print()
+
     for i, data in enumerate(results):
         f.write(f"{i};" + ";".join(str(j) for j in data) + "\n")
     f.close()
 
     total_end_time = time.time()
-    print(f"\033[34;1mTotal time: {total_end_time - total_start_time:.4f} seconds")
+    print(f"\033[34mTotal time: \033[1m{total_end_time - total_start_time:.4f}\033[0;34m seconds")
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()

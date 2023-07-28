@@ -1,6 +1,7 @@
 import os
-
-DIRECTORY = os.path.realpath(os.path.dirname(__file__))
+from step_3_split_datasets import K
+from utils import files_in_directory
+from utils import DIRECTORY, ORIGINAL_DIRECTORY
 
 if not os.path.exists(f"{DIRECTORY}/output"):
     os.mkdir(f"{DIRECTORY}/output")
@@ -17,41 +18,40 @@ def cartesian_product(items, idx = 0):
             results.append(result)
     return results
 
-def prepare_params(params):
-    if "file" not in params:
+def prepare_parameters(parameters):
+    if "file" not in parameters:
         raise Exception("Forgot to specify file")
 
-    if "test-file" not in params:
-        params["test-file"] = params["file"]
+    if "test-file" not in parameters:
+        parameters["test-file"] = parameters["file"]
 
-    if "max-depth" not in params:
-        params["max-depth"] = 3
+    if "max-depth" not in parameters:
+        parameters["max-depth"] = 3
 
-    if "max-num-nodes" not in params:
-        params["max-num-nodes"] = "max"
+    if "max-num-nodes" not in parameters:
+        parameters["max-num-nodes"] = "max"
+    if parameters["max-num-nodes"] == "max":
+        parameters["max-num-nodes"] = 2 ** parameters["max-depth"] - 1
 
-    if params["max-num-nodes"] == "max":
-        params["max-num-nodes"] = 2 ** params["max-depth"] - 1
+    if "cost-complexity" not in parameters:
+        parameters["cost-complexity"] = 0
 
-    if "cost-complexity" not in params:
-        params["cost-complexity"] = 0
-
-    if "split" not in params:
-        params["split"] = False
-    if params.pop("split"):
-        params["file"] = "train/" + params["file"]
-        params["test-file"] = "test/" + params["test-file"]
+    if "split" not in parameters:
+        parameters["split"] = False
+    if parameters.pop("split"):
+        parameters["file"] = "train/" + parameters["file"]
+        parameters["test-file"] = "test/" + parameters["test-file"]
 
         result = []
-        for idx in range(5):
-            p = params.copy()
-            p["file"] += f"_{idx}"
-            p["test-file"] += f"_{idx}"
+        for idx in range(K):
+            p = parameters.copy()
+            p["file"] += f"_partition_{idx}"
+            p["test-file"] += f"_partition_{idx}"
             result.append(p)
 
         return result
 
-    return [params]
+    return [parameters]
 
 def parse_settings(filename):
     f = open(filename)
@@ -60,31 +60,31 @@ def parse_settings(filename):
 
     return settings
 
-if __name__ == "__main__":
+def main():
     PARAM_OPTIONS = {
         "file": [
-            f"{j[:-11]}" for j in os.listdir(f"{DIRECTORY}/streed2/data/survival-analysis")
-            if j.endswith("_binary.txt") and not j.startswith("generated_dataset_")
-            and os.path.isfile(f"{DIRECTORY}/streed2/data/survival-analysis/{j}")
+            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if not j.startswith("generated_dataset_")
         ],
         "max-depth": [3],
         "max-num-nodes": ["max"],
         "cost-complexity": [0],
-        "min-deaths-per-leaf": [1],
         "mode": ["hyper"],
         "split": [True],
     }
 
-    params_settings = cartesian_product([*PARAM_OPTIONS.items()])
-    filtered_params_settings = []
-    for params in params_settings:
-        params = prepare_params(params)
-        if params:
-            filtered_params_settings.extend(params)
+    parameter_combinations = cartesian_product([*PARAM_OPTIONS.items()])
+    prepared_parameter_combinations = []
+    for parameters in parameter_combinations:
+        parameters = prepare_parameters(parameters)
+        prepared_parameter_combinations.extend(parameters)
 
     f = open(f"{DIRECTORY}/output/settings.txt", "w")
-    for params in filtered_params_settings:
-        f.write(f"{params}\n".replace("'", "\""))
+    for parameters in prepared_parameter_combinations:
+        f.write(f"{parameters}\n".replace("'", "\""))
+        print(f"\033[35;1m{parameters}\033[0m")
     f.close()
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()
