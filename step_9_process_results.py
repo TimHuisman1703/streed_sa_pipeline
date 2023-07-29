@@ -82,7 +82,7 @@ def compare_algs(data, alg1, alg2):
             print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
             print()
 
-if __name__ == "__main__":
+def main():
     data = {}
     for algorithm in ["ctree", "ost", "streed"]:
         f = open(f"{DIRECTORY}/output/{algorithm}_output.csv")
@@ -102,5 +102,10 @@ if __name__ == "__main__":
 
     plot_sorted_scores(data)
     compare_algs(data, "streed", "ost")
+    compare_algs(data, "streed", "ctree")
+    compare_algs(data, "ost", "ctree")
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()

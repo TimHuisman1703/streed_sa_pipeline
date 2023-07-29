@@ -1,9 +1,7 @@
 import numpy as np
-import os
 from sksurv.metrics import integrated_brier_score
 from utils import fill_tree, parse_tree, read_dataset, Tree
-
-DIRECTORY = os.path.realpath(os.path.dirname(__file__))
+from utils import DIRECTORY, ORIGINAL_DIRECTORY
 
 def calculate_concordance(root, instances):
     buckets = {}
@@ -70,8 +68,8 @@ def calculate_integrated_brier_score(root, instances):
 
     return score
 
-if __name__ == "__main__":
-    for algorithm in ["streed", "ost", "ctree"]:
+def main():
+    for algorithm in ["ctree", "ost", "streed"]:
         print(f"\n\033[33;1mEvaluating {algorithm.upper()}'s output...\033[0m")
 
         f = open(f"{DIRECTORY}/output/{algorithm}_trees.csv")
@@ -90,13 +88,13 @@ if __name__ == "__main__":
             results = {}
 
             tree = parse_tree(flat_tree)
-            train_instances = fill_tree(tree, f"{DIRECTORY}/datasets/{train_filename}.txt")
-            test_instances = read_dataset(f"{DIRECTORY}/datasets/{test_filename}.txt")
+            train_instances = fill_tree(tree, f"{ORIGINAL_DIRECTORY}/{train_filename}.txt")
+            test_instances = read_dataset(f"{ORIGINAL_DIRECTORY}/{test_filename}.txt")
 
             results["num_nodes"] = tree.size()
 
             for name, filename, instances in [("train", train_filename, train_instances), ("test", test_filename, test_instances)]:
-                instances = fill_tree(tree, f"{DIRECTORY}/datasets/{filename}.txt")
+                instances = fill_tree(tree, f"{ORIGINAL_DIRECTORY}/{filename}.txt")
 
                 tree.clear_instances()
                 for inst in instances:
@@ -140,3 +138,6 @@ if __name__ == "__main__":
         f.close()
 
     print("\033[32;1mDone!\033[0m")
+
+if __name__ == "__main__":
+    main()

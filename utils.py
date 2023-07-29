@@ -178,8 +178,6 @@ class Tree:
 
             instance_error = hazard * self.theta
             if event:
-                if self.theta == 0:
-                    return 0
                 if self.theta < -0.5:
                     continue
                 instance_error -= log(hazard) + log(self.theta) + 1
