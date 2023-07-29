@@ -1,6 +1,6 @@
 import os
 import shutil
-from step_4_generate_settings import parse_settings
+from step_5_generate_settings import parse_settings
 from subprocess import Popen, PIPE
 import time
 from utils import get_feature_meanings

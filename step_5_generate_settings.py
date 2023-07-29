@@ -1,5 +1,5 @@
 import os
-from step_3_split_datasets import K
+from step_4_split_datasets import K
 from utils import files_in_directory
 from utils import DIRECTORY, ORIGINAL_DIRECTORY
 
@@ -68,8 +68,8 @@ def main():
         "max-depth": [3],
         "max-num-nodes": ["max"],
         "cost-complexity": [0],
-        "mode": ["hyper"],
-        "split": [True],
+        "mode": ["direct"],
+        "split": [False],
     }
 
     parameter_combinations = cartesian_product([*PARAM_OPTIONS.items()])
