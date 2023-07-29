@@ -25,7 +25,7 @@ def main():
             continue
         
         # Remove specific datasets that caused problems
-        if dataset_name in ["d.oropha.rec", "nki70"]:
+        if dataset_name in ["d.oropha.rec", "nki70", "zinc"]:
             continue
 
         # Drop instances with NaN-values
@@ -33,11 +33,17 @@ def main():
         df = df.dropna()
         removed_instances = total_instances - df.shape[0]
 
+        # Change years into different format
+        if dataset_name == "whas500":
+            column = df["fac_year"]
+            for i in range(len(column)):
+                column[i] = column[i].split("-")[0]
+
         # Write headers
         f = open(f"{ORIGINAL_DIRECTORY}/{dataset_name}.txt", "w")
         f.write("time,event,")
-        feature_names = [j.replace(",", ";") for j in df][3:]
-        f.write(",".join(feature_names))
+        feature_names = [j.replace(",", ".") for j in df][3:]
+        f.write(",".join(feature_names).replace(":", "."))
         f.write("\n")
 
         # Write rows
@@ -46,7 +52,7 @@ def main():
             time = max(1e-6, row["time"])
             event = int(row["event"] > 0.5)
             f.write(f"{time},{event},")
-            f.write(",".join([str(row[key]).replace(",", ";").replace("'", "\\'") for key in feature_names]))
+            f.write(",".join([str(row[key]).replace(",", ".").replace("'", "\\'") for key in feature_names]))
             f.write("\n")
         f.close()
 

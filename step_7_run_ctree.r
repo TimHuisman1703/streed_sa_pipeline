@@ -71,6 +71,8 @@ for (settings_line in settings_lines) {
   # Read settings
   settings <- fromJSON(settings_line)
   name <- settings["file"]
+  max_depth <- settings["max-depth"]
+
   train_filename <- paste("numeric", settings["file"], sep = "/")
 
   # Read train data
@@ -81,8 +83,10 @@ for (settings_line in settings_lines) {
   start_time <- Sys.time()
   tree <- ctree(
     Surv(time, event) ~ .,
-    data = sdata
-    # control = ctree_control(mincriterion = 0.005, minsplit = 0, minbucket = 1)
+    data = sdata,
+    control = ctree_control(
+      maxdepth = max_depth
+    )
   )
   end_time <- Sys.time()
   tree_lines <- capture.output(print(tree))
