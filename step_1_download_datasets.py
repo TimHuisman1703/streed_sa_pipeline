@@ -23,10 +23,6 @@ def main():
         # Limit the amount of features in the dataset
         if df.shape[1] > 100:
             continue
-        
-        # Remove specific datasets that caused problems
-        if dataset_name in ["nki70"]:
-            continue
 
         # Drop instances with NaN-values
         total_instances = df.shape[0]

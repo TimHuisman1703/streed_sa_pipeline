@@ -61,7 +61,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         events = df[!, "event"] .== 1
         times = df[!, "time"]
         X = select!(df, Not([:event, :time]))
-        
+
         GC.gc()
         GC.enable(false)
 

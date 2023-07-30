@@ -11,10 +11,9 @@ ALG_INFO = {
     "ost": ("OST", "#DF7F1F"),
     "streed": ("STreeD", "#1FBF1F"),
 }
-SCORE_TYPES = [
+TRAIN_TEST_SCORE_TYPES = [
     ("Objective score", "objective_score"),
     ("Concordance score", "concordance_score"),
-    # ("IBS Ratio", "integrated_brier_score_ratio"),
 ]
 
 def plot_sorted_scores(data):
@@ -29,8 +28,19 @@ def plot_sorted_scores(data):
     plt.legend()
     plt.savefig(f"{DIRECTORY}/plots/sorted_num_nodes.png")
 
+    # Plot IBS ratio
+    plt.clf()
+    plt.title(f"Integrated Brier Score Ratio")
+    for alg, alg_data in data.items():
+        title, color = ALG_INFO[alg]
+        ys = sorted([j["results"][f"integrated_brier_score_ratio"] for j in alg_data])
+        xs = [j / (len(ys) - 1) for j in range(len(ys))]
+        plt.plot(xs, ys, c=color, label=title, linewidth=3)
+    plt.legend()
+    plt.savefig(f"{DIRECTORY}/plots/sorted_ibs_ratio.png")
+
     # Plot scores
-    for name, attr in SCORE_TYPES:
+    for name, attr in TRAIN_TEST_SCORE_TYPES:
         for type in ["train", "test"]:
             plt.clf()
             plt.title(f"{name} ({type})")
@@ -70,8 +80,18 @@ def compare_algs(data, alg1, alg2):
     print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
     print()
 
+    # Compare IBS ratio
+    counts = [0, 0, 0]
+    for line1, line2 in zip(alg1_data, alg2_data):
+        counts[1 + sign(line1["results"]["integrated_brier_score_ratio"] - line2["results"]["integrated_brier_score_ratio"])] += 1
+    print("\033[37;1mIBS Ratio\033[0m")
+    print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
+    print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
+    print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
+    print()
+
     # Compare scores
-    for name, attr in SCORE_TYPES:
+    for name, attr in TRAIN_TEST_SCORE_TYPES:
         for type in ["train", "test"]:
             counts = [0, 0, 0]
             for line1, line2 in zip(alg1_data, alg2_data):
@@ -102,7 +122,9 @@ def main():
 
     plot_sorted_scores(data)
     compare_algs(data, "streed", "ost")
+    print("=" * 42 + "\n")
     compare_algs(data, "streed", "ctree")
+    print("=" * 42 + "\n")
     compare_algs(data, "ost", "ctree")
 
     print("\033[32;1mDone!\033[0m")

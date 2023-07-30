@@ -6,7 +6,7 @@ from utils import DIRECTORY, ORIGINAL_DIRECTORY
 def calculate_concordance(root, instances):
     buckets = {}
     for inst in instances:
-        theta, _ = root.traverse(inst)
+        theta, _ = root.classify(inst)
         if theta not in buckets:
             buckets[theta] = [[], [], []]
         buckets[theta][inst.event].append(inst)
@@ -41,30 +41,31 @@ def calculate_concordance(root, instances):
     else:
         return 1
 
-def calculate_integrated_brier_score(root, instances):
-    times = sorted({inst.time for inst in instances})
+def calculate_integrated_brier_score(root, train_instances, test_instances):
+    max_train_time = max(inst.time for inst in train_instances)
+    test_instances = [inst for inst in test_instances if inst.time < max_train_time]
+
+    times = sorted({inst.time for inst in test_instances})
     q_10 = len(times) // 10
     q_90 = 9 * len(times) // 10
     times = times[q_10:q_90]
 
-    train_instances = root.instances
-    ibs_instances, ibs_estimates = [], []
-    leaves = root.get_leaves()
-    for leaf in leaves:
-        leaf_instances = leaf.instances
-        survival_function = leaf.distribution
+    estimates = []
+    estimates_per_leaf = {}
+    for inst in test_instances:
+        _, survival_distribution = root.classify(inst)
 
-        ibs_instances += leaf_instances
-
-        estimate = []
-        for t in times:
-            estimate.append(survival_function(t))
-        ibs_estimates.extend([estimate for _ in range(len(leaf_instances))])
+        if survival_distribution not in estimates_per_leaf:
+            estimate = []
+            for t in times:
+                estimate.append(survival_distribution(t))
+            estimates_per_leaf[survival_distribution] = estimate
+        estimates.append(estimates_per_leaf[survival_distribution])
 
     train_instances_formatted = np.array([(inst.event, inst.time) for inst in train_instances], dtype=[("event", "?"), ("time", "f4")])
-    test_instances_formatted = np.array([(inst.event, inst.time) for inst in ibs_instances], dtype=[("event", "?"), ("time", "f4")])
+    test_instances_formatted = np.array([(inst.event, inst.time) for inst in test_instances], dtype=[("event", "?"), ("time", "f4")])
 
-    score = integrated_brier_score(train_instances_formatted, test_instances_formatted, ibs_estimates, times)
+    score = integrated_brier_score(train_instances_formatted, test_instances_formatted, estimates, times)
 
     return score
 
@@ -90,41 +91,43 @@ def main():
             tree = parse_tree(flat_tree)
             train_instances = fill_tree(tree, f"{ORIGINAL_DIRECTORY}/{train_filename}.txt")
             test_instances = read_dataset(f"{ORIGINAL_DIRECTORY}/{test_filename}.txt")
+            base_tree = Tree(None, None, None, train_instances)
 
             results["num_nodes"] = tree.size()
+
+            base_tree_ibs = calculate_integrated_brier_score(base_tree, train_instances, test_instances)
+            curr_tree_ibs = calculate_integrated_brier_score(tree, train_instances, test_instances)
+            ibs_ratio = 1
+            if base_tree_ibs > 1e-6:
+                ibs_ratio = 1 - curr_tree_ibs / base_tree_ibs
+            if abs(ibs_ratio) < 1e-6:
+                ibs_ratio = 0
+            results["integrated_brier_score_ratio"] = ibs_ratio
 
             for name, filename, instances in [("train", train_filename, train_instances), ("test", test_filename, test_instances)]:
                 instances = fill_tree(tree, f"{ORIGINAL_DIRECTORY}/{filename}.txt")
 
-                tree.clear_instances()
-                for inst in instances:
-                    tree.traverse(inst, True)
-                tree.calculate_error()
+                for t in [tree, base_tree]:
+                    t.clear_instances()
+                    for inst in instances:
+                        t.classify(inst, True)
+                    t.calculate_error()
+
                 print(tree)
 
-                base_tree = Tree(-1, None, None, instances)
                 base_tree_error = base_tree.error
-                curr_tree_error = tree.error
+                tree_error = tree.error
                 objective_score = 1
                 if base_tree_error > 1e-6:
-                    objective_score = 1 - curr_tree_error / base_tree_error
+                    objective_score = 1 - tree_error / base_tree_error
                 if abs(objective_score) < 1e-6:
                     objective_score = 0
 
                 concordance_score = calculate_concordance(tree, instances)
 
-                # base_tree_ibs = calculate_integrated_brier_score(base_tree, instances)
-                # curr_tree_ibs = calculate_integrated_brier_score(tree, instances)
-                ibs_ratio = 1
-                # if base_tree_ibs > 1e-6:
-                #     ibs_ratio = 1 - curr_tree_ibs / base_tree_ibs
-                # if abs(ibs_ratio) < 1e-6:
-                #     ibs_ratio = 0
-
                 results[name] = {
                     "objective_score": objective_score,
                     "concordance_score": concordance_score,
-                    "integrated_brier_score_ratio": ibs_ratio,
                 }
 
             info_line = ";".join(line.split(";")[:-1])

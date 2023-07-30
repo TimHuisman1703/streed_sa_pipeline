@@ -136,7 +136,7 @@ class Tree:
             return 0
         return self.trees[0].size() + 1 + self.trees[1].size()
 
-    def traverse(self, instance, store=False):
+    def classify(self, instance, store=False):
         if store:
             self.instances.append(instance)
 
@@ -144,9 +144,9 @@ class Tree:
             return (self.theta, self.distribution)
 
         if not self.criterium(instance.feats):
-            return self.trees[0].traverse(instance, store)
+            return self.trees[0].classify(instance, store)
         else:
-            return self.trees[1].traverse(instance, store)
+            return self.trees[1].classify(instance, store)
 
     def calculate_label(self):
         events = [inst.event for inst in self.instances]
@@ -279,7 +279,7 @@ def fill_tree(tree, dataset_filename):
     Tree.hazard_function = nelson_aalen(instances)
 
     for inst in instances:
-        tree.traverse(inst, True)
+        tree.classify(inst, True)
     tree.calculate_error()
 
     return instances
