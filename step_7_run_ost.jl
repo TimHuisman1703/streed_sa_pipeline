@@ -61,29 +61,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         events = df[!, "event"] .== 1
         times = df[!, "time"]
         X = select!(df, Not([:event, :time]))
-
-        object_to_fit = nothing
-        if hypertuning
-            object_to_fit = IAI.GridSearch(
-                IAI.OptimalTreeSurvivalLearner(
-                    missingdatamode=:separate_class,
-                    random_seed=1,
-                    skip_curve_fitting=false,
-                    death_minbucket=0,
-                ),
-                max_depth=0:max_depth,
-            )
-        else
-            object_to_fit = IAI.OptimalTreeSurvivalLearner(
-                missingdatamode=:separate_class,
-                random_seed=1,
-                skip_curve_fitting=false,
-                cp=cost_complexity,
-                death_minbucket=0,
-                max_depth=max_depth,
-            )
-        end
-
+        
         GC.gc()
         GC.enable(false)
 
@@ -93,9 +71,41 @@ open(DIRECTORY * "/output/settings.txt") do f
             println("\033[35;1mRunning " * file * ".txt {depth = " * string(max_depth) * "}\033[0m")
         end
 
-        start_time = time()
-        IAI.fit!(object_to_fit, X, events, times)
-        end_time = time()
+        random_seed = 1
+        object_to_fit = nothing
+        start_time = end_time = 0
+        while true
+            try
+                if hypertuning
+                    object_to_fit = IAI.GridSearch(
+                        IAI.OptimalTreeSurvivalLearner(
+                            random_seed=random_seed,
+                            skip_curve_fitting=false,
+                            death_minbucket=0,
+                        ),
+                        max_depth=0:max_depth,
+                    )
+                else
+                    object_to_fit = IAI.OptimalTreeSurvivalLearner(
+                        random_seed=random_seed,
+                        skip_curve_fitting=false,
+                        cp=cost_complexity,
+                        death_minbucket=1,
+                        minbucket=1,
+                        max_depth=max_depth,
+                    )
+                end
+
+                start_time = time()
+                IAI.fit!(object_to_fit, X, events, times)
+                end_time = time()
+
+                break
+            catch
+                println("\033[31;1mAn error occurred, retrying!\033[0m")
+                random_seed += 1
+            end
+        end
 
         GC.enable(true)
 

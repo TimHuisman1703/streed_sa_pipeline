@@ -48,14 +48,12 @@ def run_streed(parameters):
 
     out_lines = [j.strip() for j in out.decode().split("\n")]
     time_line = [j for j in out_lines if j.startswith("CLOCKS FOR SOLVE:")][0]
-    tree_line = [j for j in out_lines if j.startswith("Tree 0:")][0]
-
     time = float(time_line.split()[-1])
-    tree = None
-    try:
-        tree = tree_line.split()[-1]
-    except:
-        return -1, None
+    if "No tree found" in out_lines:
+        return -time, "[None]"
+
+    tree_line = [j for j in out_lines if j.startswith("Tree 0:")][0]
+    tree = tree_line.split()[-1]
 
     return time, tree
 
@@ -97,9 +95,9 @@ def main():
 
             if time_duration >= 0:
                 print(f"\033[33;1m{tree}\033[0m")
-                print(f"\033[34mTime: \033[1m{time_duration:.4f}\033[0;34m seconds")
+                print(f"\033[34mTime: \033[1m{time_duration:.3f}\033[0;34m seconds")
             else:
-                print(f"\033[31;1mOut of time: {time_duration:.3f} seconds\033[0m")
+                print(f"\033[31mOut of time: \033[1m{-time_duration:.3f}\033[0;31m seconds\033[0m")
 
             feature_meanings = get_feature_meanings("binary", train_filename)
             tree = serialize_tree_with_features(eval(tree), feature_names, feature_meanings)
