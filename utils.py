@@ -110,12 +110,10 @@ def calculate_theta(events, hazards):
     if len(events) == 0:
         return -1
 
-    numerator = sum(events)
+    numerator = max(0.5, sum(events))
     denominator = sum(hazards)
 
-    theta = 0
-    if denominator > 0:
-        theta = numerator / denominator
+    theta = numerator / denominator
 
     return theta
 
@@ -178,8 +176,6 @@ class Tree:
 
             instance_error = hazard * self.theta
             if event:
-                if self.theta < -0.5:
-                    continue
                 instance_error -= log(hazard) + log(self.theta) + 1
             self.error += instance_error
         self.error = max(0, self.error)

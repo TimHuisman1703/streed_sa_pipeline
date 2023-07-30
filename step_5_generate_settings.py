@@ -68,8 +68,8 @@ def main():
         "max-depth": [3],
         "max-num-nodes": ["max"],
         "cost-complexity": [0],
-        "mode": ["direct"],
-        "split": [False],
+        "mode": ["hyper"],
+        "split": [True],
     }
 
     parameter_combinations = cartesian_product([*PARAM_OPTIONS.items()])

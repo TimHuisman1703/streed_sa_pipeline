@@ -25,7 +25,7 @@ def main():
             continue
         
         # Remove specific datasets that caused problems
-        if dataset_name in ["d.oropha.rec", "nki70", "zinc"]:
+        if dataset_name in ["nki70"]:
             continue
 
         # Drop instances with NaN-values

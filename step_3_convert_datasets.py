@@ -3,7 +3,7 @@ import shutil
 from utils import files_in_directory, parse_line
 from utils import ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY
 
-MAX_BINARIZATIONS_PER_FEATURE = 10
+MAX_BINARIZATIONS_PER_FEATURE = 25
 
 def remove_redundant_binary_features(feature_names, instances):
     # Create new instances with time and event already added
