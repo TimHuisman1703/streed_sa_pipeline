@@ -7,6 +7,8 @@ library("survival")
 directory <- getwd()
 dataset_directory <- paste(directory, "/datasets", sep = "")
 
+dataset_type = "binary"
+
 settings_file <- paste(directory, "/output/settings.txt", sep = "")
 
 serialize_tree_with_features <- function(lines, root_idx, feature_meanings) {
@@ -73,7 +75,7 @@ for (settings_line in settings_lines) {
   name <- settings["file"]
   max_depth <- settings["max-depth"]
 
-  train_filename <- paste("numeric", settings["file"], sep = "/")
+  train_filename <- paste(dataset_type, settings["file"], sep = "/")
 
   # Read train data
   file_path <- paste(dataset_directory, "/", train_filename, ".txt", sep = "")
@@ -102,7 +104,7 @@ for (settings_line in settings_lines) {
     slash_idx <- regexpr("/.*$", name)[1]
     core_name <- substring(name, slash_idx + 1, partition_idx - 1)
   }
-  feature_meanings_file_path <- paste(dataset_directory, "/numeric/feature_meanings/", core_name, ".txt", sep = "")
+  feature_meanings_file_path <- paste(dataset_directory, "/feature_meanings/", core_name, ".txt", sep = "")
   feature_meanings_lines <- read_lines(feature_meanings_file_path)
 
   # Parse feature meanings

@@ -10,34 +10,43 @@ total_start_time = time()
 
 DIRECTORY = dirname(Base.source_path())
 
+DATASET_TYPE = "binary"
+
 using CSV
 using DataFrames
 using JSON
 println("\033[30;1mImported modules\033[0m")
 
-function serialize_tree(tree, node_idx)
+function serialize_tree(tree, node_idx, feature_meanings)
     if IAI.is_leaf(tree, node_idx)
         return "[None]"
     else
-        attribute = "x['" * string(IAI.get_split_feature(tree, node_idx)) * "']"
-        feature_description = "lambda x: " * attribute
+        feature_name = string(IAI.get_split_feature(tree, node_idx))
 
-        if IAI.is_parallel_split(tree, node_idx)
-            feature_description *= " < " * string(IAI.get_split_threshold(tree, node_idx))
+        feature_description = ""
+        if haskey(feature_meanings, feature_name)
+            feature_description = feature_meanings[feature_name]
         else
-            categories = IAI.get_split_categories(tree, node_idx)
-            included_categores = []
-            for key in keys(categories)
-                if categories[key]
-                    push!(included_categores, key)
+            attribute = "x['" * feature_name * "']"
+            feature_description = "lambda x: " * attribute
+
+            if IAI.is_parallel_split(tree, node_idx)
+                feature_description *= " < " * string(IAI.get_split_threshold(tree, node_idx))
+            else
+                categories = IAI.get_split_categories(tree, node_idx)
+                included_categores = []
+                for key in keys(categories)
+                    if categories[key]
+                        push!(included_categores, key)
+                    end
                 end
+                feature_description *= " in [\'" * join(included_categores, "\',\'") * "\']"
             end
-            feature_description *= " in [\'" * join(included_categores, "\',\'") * "\']"
         end
 
         return "[" * feature_description *
-            "," * serialize_tree(tree, IAI.get_upper_child(tree, node_idx)) *
-            "," * serialize_tree(tree, IAI.get_lower_child(tree, node_idx)) * "]"
+            "," * serialize_tree(tree, IAI.get_upper_child(tree, node_idx), feature_meanings) *
+            "," * serialize_tree(tree, IAI.get_lower_child(tree, node_idx), feature_meanings) * "]"
     end
 end
 
@@ -54,9 +63,9 @@ open(DIRECTORY * "/output/settings.txt") do f
     settings_line = nothing
 
     while true
-        continuing = !eof(f);
+        continuing = !eof(f)
 
-        df = CSV.read(DIRECTORY * "/datasets/original/" * file * ".txt", DataFrame, pool=true)
+        df = CSV.read(DIRECTORY * "/datasets/" * DATASET_TYPE * "/" * file * ".txt", DataFrame, pool=true)
 
         events = df[!, "event"] .== 1
         times = df[!, "time"]
@@ -119,7 +128,24 @@ open(DIRECTORY * "/output/settings.txt") do f
         println(learner)
 
         if !warming_up
-            tree_string = serialize_tree(learner, 1)
+            core_name = file
+            if contains(core_name, "_partition_")
+                slash_idx = findfirst("/", core_name).start
+                partition_idx = findfirst("_partition_", core_name).start
+                core_name = core_name[(slash_idx + 1):(partition_idx - 1)]
+            end
+            feature_meanings = Dict()
+            open(DIRECTORY * "/datasets/feature_meanings/" * core_name * ".txt") do fmf
+                while !eof(fmf)
+                    text = readline(fmf)
+                    equals_idx = findfirst(" = ", text).start
+                    key = text[1:(equals_idx - 1)]
+                    value = text[(equals_idx + 3):end]
+                    feature_meanings[key] = value
+                end
+            end
+
+            tree_string = serialize_tree(learner, 1, feature_meanings)
             time_duration = round(end_time - start_time, digits=3)
             push!(results, (settings_line, time_duration, tree_string))
 

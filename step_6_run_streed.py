@@ -4,12 +4,14 @@ from step_5_generate_settings import parse_settings
 from subprocess import Popen, PIPE
 import time
 from utils import get_feature_meanings
-from utils import DIRECTORY, BINARY_DIRECTORY
+from utils import DIRECTORY
 
 EXEC_PATH = f"{DIRECTORY}/streed2/out/build/x64-Release/STREED.exe"
 STREED_DIRECTORY = f"{DIRECTORY}/streed2/data/survival-analysis"
 
-TIME = 600
+TIME = 60
+
+DATASET_TYPE = "binary"
 
 def make_streed_compatible(input_path, output_path):
     f = open(input_path)
@@ -80,13 +82,15 @@ def main():
 
     results = []
     try:
+        dataset_directory = f"{DIRECTORY}/datasets/{DATASET_TYPE}"
+
         for params in params_settings:
             train_filename = params["file"]
-            train_path = f"{BINARY_DIRECTORY}/{train_filename}.txt"
-            params["file"] = train_path.replace(BINARY_DIRECTORY, STREED_DIRECTORY)
+            train_path = f"{dataset_directory}/{train_filename}.txt"
+            params["file"] = train_path.replace(dataset_directory, STREED_DIRECTORY)
             test_filename = params["test-file"]
-            test_path = f"{BINARY_DIRECTORY}/{test_filename}.txt"
-            params["test-file"] = test_path.replace(BINARY_DIRECTORY, STREED_DIRECTORY)
+            test_path = f"{dataset_directory}/{test_filename}.txt"
+            params["test-file"] = test_path.replace(dataset_directory, STREED_DIRECTORY)
 
             feature_names = make_streed_compatible(train_path, params["file"])
             make_streed_compatible(test_path, params["test-file"])
@@ -99,7 +103,7 @@ def main():
             else:
                 print(f"\033[31mOut of time: \033[1m{-time_duration:.3f}\033[0;31m seconds\033[0m")
 
-            feature_meanings = get_feature_meanings("binary", train_filename)
+            feature_meanings = get_feature_meanings(train_filename)
             tree = serialize_tree_with_features(eval(tree), feature_names, feature_meanings)
 
             results.append((params, time_duration, tree))

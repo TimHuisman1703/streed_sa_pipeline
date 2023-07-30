@@ -222,11 +222,11 @@ class Tree:
     def __repr__(self):
         return self.to_string([]).strip()
 
-def get_feature_meanings(type, filename):
+def get_feature_meanings(filename):
     if len(filename.split("_partition_")):
         filename = filename.replace("train/", "").replace("test/", "").split("_partition_")[0]
 
-    f = open(f"{DIRECTORY}/datasets/{type}/feature_meanings/{filename}.txt")
+    f = open(f"{DIRECTORY}/datasets/feature_meanings/{filename}.txt")
     lines = f.read().strip().split("\n")
     f.close()
 
