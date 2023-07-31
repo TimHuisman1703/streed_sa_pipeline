@@ -93,7 +93,7 @@ def main():
         lines = f.read().strip().split("\n")
         f.close()
 
-        new_lines = [";".join(lines[0].split(";")[:-1] + ["results"])]
+        new_lines = [";".join(lines[0].split(";")[:-2] + ["results"])]
 
         for line in lines[1:]:
             # Parse line
@@ -109,6 +109,9 @@ def main():
             train_instances = fill_tree(tree, f"{ORIGINAL_DIRECTORY}/{train_filename}.txt")
             test_instances = read_dataset(f"{ORIGINAL_DIRECTORY}/{test_filename}.txt")
             base_tree = Tree(None, None, None, train_instances)
+
+            # Store time
+            results["runtime"] = time_duration
 
             # Count number of nodes
             results["num_nodes"] = tree.size()
@@ -154,7 +157,7 @@ def main():
                 }
 
             # Push results on a single line
-            info_line = ";".join(line.split(";")[:-1])
+            info_line = ";".join(line.split(";")[:-2])
             results_line = str(results)
             new_line = f"{info_line};{results_line}"
             new_lines.append(new_line)

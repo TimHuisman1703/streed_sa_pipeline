@@ -134,10 +134,9 @@ def main():
 
         alg_data = []
         for line in lines[1:]:
-            _, settings, time, results = [eval(j) for j in line.split(";")]
+            _, settings, results = [eval(j) for j in line.split(";")]
             alg_data.append({
                 "settings": settings,
-                "time": time,
                 "results": results
             })
 
