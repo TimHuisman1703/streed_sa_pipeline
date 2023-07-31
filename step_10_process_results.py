@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
@@ -72,34 +73,46 @@ def compare_algs(data, alg1, alg2):
 
     # Compare num nodes
     counts = [0, 0, 0]
+    diffs = []
     for line1, line2 in zip(alg1_data, alg2_data):
-        counts[1 + sign(line1["results"]["num_nodes"] - line2["results"]["num_nodes"])] += 1
+        diff = line1["results"]["num_nodes"] - line2["results"]["num_nodes"]
+        counts[1 + sign(diff)] += 1
+        diffs.append(diff)
     print("\033[37;1mNum nodes\033[0m")
     print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
     print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
     print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
+    print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4})\033[0m")
     print()
 
     # Compare IBS ratio
     counts = [0, 0, 0]
+    diffs = []
     for line1, line2 in zip(alg1_data, alg2_data):
-        counts[1 + sign(line1["results"]["integrated_brier_score_ratio"] - line2["results"]["integrated_brier_score_ratio"])] += 1
+        diff = line1["results"]["integrated_brier_score_ratio"] - line2["results"]["integrated_brier_score_ratio"]
+        counts[1 + sign(diff)] += 1
+        diffs.append(diff)
     print("\033[37;1mIBS Ratio\033[0m")
     print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
     print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
     print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
+    print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4})\033[0m")
     print()
 
     # Compare scores
     for name, attr in TRAIN_TEST_SCORE_TYPES:
         for type in ["train", "test"]:
             counts = [0, 0, 0]
+            diffs = []
             for line1, line2 in zip(alg1_data, alg2_data):
-                counts[1 + sign(line1["results"][f"{type}"][attr] - line2["results"][f"{type}"][attr])] += 1
+                diff = line1["results"][f"{type}"][attr] - line2["results"][f"{type}"][attr]
+                counts[1 + sign(diff)] += 1
+                diffs.append(diff)
             print(f"\033[37;1m{name} ({type})\033[0m")
             print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
             print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
             print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
+            print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4})\033[0m")
             print()
 
 def main():

@@ -24,8 +24,10 @@ function serialize_tree(tree, node_idx, feature_meanings)
         feature_name = string(IAI.get_split_feature(tree, node_idx))
 
         feature_description = ""
+        swap = false
         if haskey(feature_meanings, feature_name)
             feature_description = feature_meanings[feature_name]
+            swap = true
         else
             attribute = "x['" * feature_name * "']"
             feature_description = "lambda x: " * attribute
@@ -44,9 +46,16 @@ function serialize_tree(tree, node_idx, feature_meanings)
             end
         end
 
+        lower_child = serialize_tree(tree, IAI.get_upper_child(tree, node_idx), feature_meanings)
+        upper_child = serialize_tree(tree, IAI.get_lower_child(tree, node_idx), feature_meanings)
+
+        if swap
+            lower_child, upper_child = upper_child, lower_child
+        end
+
         return "[" * feature_description *
-            "," * serialize_tree(tree, IAI.get_upper_child(tree, node_idx), feature_meanings) *
-            "," * serialize_tree(tree, IAI.get_lower_child(tree, node_idx), feature_meanings) * "]"
+            "," * lower_child *
+            "," * upper_child * "]"
     end
 end
 
@@ -83,6 +92,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         random_seed = 1
         object_to_fit = nothing
         start_time = end_time = 0
+        already_halted_once = false
         while true
             try
                 if hypertuning
@@ -110,10 +120,23 @@ open(DIRECTORY * "/output/settings.txt") do f
                 end_time = time()
 
                 break
-            catch
+            catch ex
+                if isa(ex, InterruptException)
+                    if already_halted_once
+                        println("\033[33;1mHalted program!\033[0m")
+                        break
+                    end
+
+                    println("\033[33mKeyboard interrupt! Do it again to halt the program.\033[0m")
+                    already_halted_once = true
+                    continue
+                end
+
                 println("\033[31;1mAn error occurred, retrying!\033[0m")
                 random_seed += 1
             end
+
+            already_halted_once = false
         end
 
         GC.enable(true)
