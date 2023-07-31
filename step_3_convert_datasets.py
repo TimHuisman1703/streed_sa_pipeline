@@ -5,6 +5,11 @@ from utils import DIRECTORY, ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIREC
 
 MAX_BINARIZATIONS_PER_FEATURE = 25
 
+# Checks for binary features that make the same split and removes one of them, and removes binary features for which all instances have the same value
+# Returns the new feature names (with some features removed) and the new instances
+#
+# feature_names     The names of the features in order
+# instances         The instances of the dataset
 def remove_redundant_binary_features(feature_names, instances):
     # Create new instances with time and event already added
     new_feature_names = ["time", "event"]
@@ -36,6 +41,11 @@ def remove_redundant_binary_features(feature_names, instances):
 
     return new_feature_names, new_instances
 
+# Turns the categorical features in a dataset to binary features
+# Returns the new feature names, the new instances, and a mapping from new feature names to their meanings
+#
+# feature_names     The names of the features in order
+# instances         The instances of the dataset
 def turn_numeric(feature_names, instances):
     new_feature_names = ["time", "event"]
     new_instances = [j[:2] for j in instances]
@@ -71,6 +81,11 @@ def turn_numeric(feature_names, instances):
 
     return new_feature_names, new_instances, new_feature_meanings
 
+# Turns the continuous features in a dataset to binary features
+# Returns the new feature names, the new instances, and a mapping from new feature names to their meanings
+#
+# feature_names     The names of the features in order
+# instances         The instances of the dataset
 def turn_binary(feature_names, instances):
     new_feature_names = ["time", "event"]
     new_instances = [j[:2] for j in instances]
@@ -114,7 +129,7 @@ def main():
     if os.path.exists(f"{DIRECTORY}/datasets/feature_meanings"):
         shutil.rmtree(f"{DIRECTORY}/datasets/feature_meanings")
     os.mkdir(f"{DIRECTORY}/datasets/feature_meanings")
-    
+
     for output_directory in [NUMERIC_DIRECTORY, BINARY_DIRECTORY]:
         # Remove all previously converted datasets
         if not os.path.exists(output_directory):

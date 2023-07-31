@@ -1,40 +1,52 @@
-#=
+#= CONVENIENT CMD ARGUMENTS TO RUN ALGORITHM FROM THE CONSOLE
 julia
 include("C:/Users/timhu/Documents/TUDelft/Courses/RP/streed_sa_pipeline/step_7_run_ost.jl")
 
 =#
 
 println("\033[30;1mStarted\033[0m")
-
 total_start_time = time()
 
 DIRECTORY = dirname(Base.source_path())
-
 DATASET_TYPE = "binary"
 
+# Import modules (takes long)
 using CSV
 using DataFrames
 using JSON
 println("\033[30;1mImported modules\033[0m")
 
+# Serialize the tree learner to a lambda-structure
+#
+# tree              The learner object to serialize
+# node_idx          The index of the node to convert at the moment (root = 1)
+# feature_meanings  The dictionary to read feature meanings from
 function serialize_tree(tree, node_idx, feature_meanings)
     if IAI.is_leaf(tree, node_idx)
+        # Leaf node
         return "[None]"
     else
+        # Decision node
         feature_name = string(IAI.get_split_feature(tree, node_idx))
 
         feature_description = ""
         swap = false
         if haskey(feature_meanings, feature_name)
+            # If the feature meaning is found in the map, use it
             feature_description = feature_meanings[feature_name]
+
+            # Set swap to false, since OST gives thresholds like "... < 0.5", thereby negating the meaning of the feature
             swap = true
         else
+            # If the feature meaning isn't found, create an own lambda
             attribute = "x['" * feature_name * "']"
             feature_description = "lambda x: " * attribute
 
             if IAI.is_parallel_split(tree, node_idx)
+                # Use "... < ..." for numerical features
                 feature_description *= " < " * string(IAI.get_split_threshold(tree, node_idx))
             else
+                # Use "... in [...]" for categorical features
                 categories = IAI.get_split_categories(tree, node_idx)
                 included_categores = []
                 for key in keys(categories)
@@ -46,9 +58,11 @@ function serialize_tree(tree, node_idx, feature_meanings)
             end
         end
 
+        # Serialize children
         lower_child = serialize_tree(tree, IAI.get_upper_child(tree, node_idx), feature_meanings)
         upper_child = serialize_tree(tree, IAI.get_lower_child(tree, node_idx), feature_meanings)
 
+        # Swap children if necessary
         if swap
             lower_child, upper_child = upper_child, lower_child
         end
@@ -61,6 +75,7 @@ end
 
 results = []
 open(DIRECTORY * "/output/settings.txt") do f
+    # Default parameters for warming up
     file = "ovarian"
     max_depth = 0
     max_num_nodes = 0
@@ -74,12 +89,13 @@ open(DIRECTORY * "/output/settings.txt") do f
     while true
         continuing = !eof(f)
 
+        # Read data
         df = CSV.read(DIRECTORY * "/datasets/" * DATASET_TYPE * "/" * file * ".txt", DataFrame, pool=true)
-
         events = df[!, "event"] .== 1
         times = df[!, "time"]
         X = select!(df, Not([:event, :time]))
 
+        # Disable garbage collect during fitting process
         GC.gc()
         GC.enable(false)
 
@@ -95,6 +111,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         already_halted_once = false
         while true
             try
+                # Define learner object
                 if hypertuning
                     object_to_fit = IAI.GridSearch(
                         IAI.OptimalTreeSurvivalLearner(
@@ -115,12 +132,14 @@ open(DIRECTORY * "/output/settings.txt") do f
                     )
                 end
 
+                # Start training
                 start_time = time()
                 IAI.fit!(object_to_fit, X, events, times)
                 end_time = time()
 
                 break
             catch ex
+                # If something goes wrong, check whether it was intentional
                 if isa(ex, InterruptException)
                     if already_halted_once
                         println("\033[33;1mHalted program!\033[0m")
@@ -132,6 +151,7 @@ open(DIRECTORY * "/output/settings.txt") do f
                     continue
                 end
 
+                # Try again with a different seed
                 println("\033[31;1mAn error occurred, retrying!\033[0m")
                 random_seed += 1
             end
@@ -141,16 +161,16 @@ open(DIRECTORY * "/output/settings.txt") do f
 
         GC.enable(true)
 
+        # Get tree learner and thetas
         learner = object_to_fit
         if hypertuning
             learner = IAI.get_learner(object_to_fit)
         end
-
         thetas = IAI.predict_hazard(learner, X)
-
         println(learner)
 
         if !warming_up
+            # Read feature meanings
             core_name = file
             if contains(core_name, "_partition_")
                 slash_idx = findfirst("/", core_name).start
@@ -168,6 +188,7 @@ open(DIRECTORY * "/output/settings.txt") do f
                 end
             end
 
+            # Parse tree and push results
             tree_string = serialize_tree(learner, 1, feature_meanings)
             time_duration = round(end_time - start_time, digits=3)
             push!(results, (settings_line, time_duration, tree_string))
@@ -181,6 +202,7 @@ open(DIRECTORY * "/output/settings.txt") do f
             break
         end
 
+        # Read the settings for the next run
         settings_line = readline(f)
         settings = JSON.parse(settings_line)
 
@@ -192,6 +214,7 @@ open(DIRECTORY * "/output/settings.txt") do f
     end
 end
 
+# Write trees to file
 id = 0
 open(DIRECTORY * "/output/ost_trees.csv", "w") do f
     write(f, "id;settings;time;tree\n")

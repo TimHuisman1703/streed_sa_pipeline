@@ -29,7 +29,7 @@ def main():
         df = df.dropna()
         removed_instances = total_instances - df.shape[0]
 
-        # Change years into different format
+        # Change years into different format (this caused errors for OST)
         if dataset_name == "whas500":
             column = df["fac_year"]
             for i in range(len(column)):

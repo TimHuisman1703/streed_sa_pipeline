@@ -5,22 +5,26 @@ library("readr")
 library("survival")
 
 directory <- getwd()
-dataset_directory <- paste(directory, "/datasets", sep = "")
-
 dataset_type = "binary"
 
 settings_file <- paste(directory, "/output/settings.txt", sep = "")
 
+# Serialize the tree learner to a lambda-structure
+#
+# tree              The learner object to serialize
+# node_idx          The index of the node to convert at the moment (root = 1)
+# feature_meanings  The dictionary to read feature meanings from
 serialize_tree_with_features <- function(lines, root_idx, feature_meanings) {
   line <- lines[root_idx]
   depth <- lengths(regmatches(line, gregexpr("\\|   ", line)))
 
+  # Leaf node
   if (root_idx == length(lines))
     return("[None]")
 
+  # Find left and right children
   left_idx <- 0
   right_idx <- 0
-
   for (i in (root_idx + 1):length(lines)) {
     pattern_descendant <- strrep("|   ", depth + 1)
     if (!startsWith(lines[i], pattern_descendant))
@@ -37,27 +41,34 @@ serialize_tree_with_features <- function(lines, root_idx, feature_meanings) {
     }
   }
 
+  # If `left_idx` was never updated, no child exists: leaf node
   if (left_idx == 0)
     return("[None]")
 
+  # Read feature from the right child's condition
   feature_line <- lines[right_idx]
 
+  # Find the splitting criterium
   start_idx <- regexpr("\\]", feature_line)[1] + 2
   end_idx <- nchar(feature_line)
   if (substring(feature_line, end_idx) == ")")
     end_idx <- regexpr("\\:[^\\:]*$", feature_line)[1] - 1
-  feature_raw <- substring(feature_line, start_idx, end_idx)
+  criterium <- substring(feature_line, start_idx, end_idx)
 
-  split_idx <- regexpr(" [^ ]* [^ ]*$", feature_raw)[1]
-  feature_name <- substring(feature_raw, 1, split_idx - 1)
-  comparison <- substring(feature_raw, split_idx)
+  # Split criterium in feature name and comparison
+  split_idx <- regexpr(" [^ ]* [^ ]*$", criterium)[1]
+  feature_name <- substring(criterium, 1, split_idx - 1)
+  comparison <- substring(criterium, split_idx)
 
   if (has.key(feature_name, feature_meanings)) {
+    # If the feature meaning is already known, use it
     feature <- feature_meanings[[feature_name]]
   } else {
+    # If not, create own lambda using the comparison
     feature <- paste("lambda x: x['", feature_name, "']", comparison, sep = "")
   }
 
+  # Serialize children
   left_child <- serialize_tree_with_features(lines, left_idx, feature_meanings)
   right_child <- serialize_tree_with_features(lines, right_idx, feature_meanings)
 
@@ -78,7 +89,7 @@ for (settings_line in settings_lines) {
   train_filename <- paste(dataset_type, settings["file"], sep = "/")
 
   # Read train data
-  file_path <- paste(dataset_directory, "/", train_filename, ".txt", sep = "")
+  file_path <- paste(directory, "/datasets/", train_filename, ".txt", sep = "")
   sdata <- read.csv(file_path, stringsAsFactors = FALSE)
 
   # Fit and capture tree
@@ -104,7 +115,7 @@ for (settings_line in settings_lines) {
     slash_idx <- regexpr("/.*$", name)[1]
     core_name <- substring(name, slash_idx + 1, partition_idx - 1)
   }
-  feature_meanings_file_path <- paste(dataset_directory, "/feature_meanings/", core_name, ".txt", sep = "")
+  feature_meanings_file_path <- paste(directory, "/datasets/feature_meanings/", core_name, ".txt", sep = "")
   feature_meanings_lines <- read_lines(feature_meanings_file_path)
 
   # Parse feature meanings
@@ -117,6 +128,7 @@ for (settings_line in settings_lines) {
   }
   tree_string <- serialize_tree_with_features(tree_lines, 1, feature_meanings)
 
+  # Append results
   result_line <- paste("\n",
     paste(id, settings_line, end_time - start_time, tree_string, sep = ";"),
     sep = ""
@@ -129,6 +141,7 @@ for (settings_line in settings_lines) {
   id <- id + 1
 }
 
+# Write trees to file
 sink(paste(directory, "/output/ctree_trees.csv", sep = ""))
 cat(result)
 sink()

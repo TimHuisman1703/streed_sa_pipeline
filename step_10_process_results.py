@@ -17,6 +17,9 @@ TRAIN_TEST_SCORE_TYPES = [
     ("Concordance score", "concordance_score"),
 ]
 
+# Makes plots for each of the algorithms by sorting a list of outcomes and laying it out over a [0, 1]-range
+#
+# data  The output data for each of the algorithms
 def plot_sorted_scores(data):
     # Plot num nodes
     plt.clf()
@@ -53,10 +56,16 @@ def plot_sorted_scores(data):
             plt.legend()
             plt.savefig(f"{DIRECTORY}/plots/sorted_{attr}_{type}.png")
 
+# Compares the results of two algorithms (only if they have been run with the same list of settings)
+#
+# data  The output data for each of the algorithms
+# alg1  The name of algorithm 1
+# alg2  The name of algorithm 2
 def compare_algs(data, alg1, alg2):
     alg1_data = data[alg1]
     alg2_data = data[alg2]
 
+    # Determine whether the same settigns were used for both algorithms
     correct = True
     if len(alg1_data) != len(alg2_data):
         correct = False
@@ -116,6 +125,7 @@ def compare_algs(data, alg1, alg2):
             print()
 
 def main():
+    # Load data for each algorithm
     data = {}
     for algorithm in ["ctree", "ost", "streed"]:
         f = open(f"{DIRECTORY}/output/{algorithm}_output.csv")
@@ -133,6 +143,7 @@ def main():
 
         data[algorithm] = alg_data
 
+    # Process the data
     plot_sorted_scores(data)
     compare_algs(data, "streed", "ost")
     print("=" * 42 + "\n")
