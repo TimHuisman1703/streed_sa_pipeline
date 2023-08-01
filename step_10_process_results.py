@@ -78,7 +78,7 @@ def compare_algs(data, alg1, alg2):
         return
 
     def sign(x):
-        return (x > 0) - (x < 0)
+        return (x > 1e-6) - (x < -1e-6)
 
     # Compare num nodes
     counts = [0, 0, 0]
@@ -117,6 +117,12 @@ def compare_algs(data, alg1, alg2):
                 diff = line1["results"][f"{type}"][attr] - line2["results"][f"{type}"][attr]
                 counts[1 + sign(diff)] += 1
                 diffs.append(diff)
+
+                if alg1 == "streed" and alg2 == "ost":
+                    if type == "train" and attr == "objective_score":
+                        if diff < 0:
+                            print(line1, line2)
+
             print(f"\033[37;1m{name} ({type})\033[0m")
             print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
             print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")

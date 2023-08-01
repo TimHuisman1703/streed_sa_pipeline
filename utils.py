@@ -169,16 +169,18 @@ class Tree:
         if self.theta == None or self.distribution == None:
             self.theta, self.distribution = self.calculate_label()
 
-        self.error = 0
+        event_sum = 0
+        negative_log_hazard_sum = 0
+
         for inst in self.instances:
             event = inst.event
             hazard = Tree.hazard_function(inst.time)
 
-            instance_error = hazard * self.theta
             if event:
-                instance_error -= log(hazard) + log(self.theta) + 1
-            self.error += instance_error
-        self.error = max(0, self.error)
+                event_sum += 1
+                negative_log_hazard_sum += -log(hazard)
+        
+        self.error = max(0, negative_log_hazard_sum - event_sum * log(self.theta))
 
         return self.error
 
