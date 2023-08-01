@@ -108,13 +108,13 @@ class Instance:
 
 def calculate_theta(events, hazards):
     if len(events) == 0:
+        assert(False)
         return -1
 
     numerator = max(0.5, sum(events))
     denominator = sum(hazards)
 
     theta = numerator / denominator
-
     return theta
 
 class Tree:

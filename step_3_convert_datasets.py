@@ -83,7 +83,9 @@ def turn_numeric(feature_names, instances):
                 values.append(last_value)
                 
             
-            for option in values:
+            for _option in values:
+                option = _option if not isinstance(_option, str) else _option.replace("'", "\\'")
+                
                 # Create binary variables using this option
                 for k in range(len(instances)):
                     if isinstance(option, list):

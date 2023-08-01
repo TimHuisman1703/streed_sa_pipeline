@@ -55,6 +55,7 @@ function serialize_tree(tree, node_idx, feature_meanings)
                     end
                 end
                 feature_description *= " in [\'" * join(included_categores, "\',\'") * "\']" # TODO : is this correct ? should each of these have '' or check if it is numerical or str?
+                # TODO : also consider ampersands ' in the category name, see cgd data set, 'fac_center' feature, with value 'L.A. Children\'s Hosp'
             end
         end
 

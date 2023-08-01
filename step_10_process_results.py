@@ -110,6 +110,7 @@ def compare_algs(data, alg1, alg2):
 
     # Compare scores
     for name, attr in TRAIN_TEST_SCORE_TYPES:
+        max_diff = 0
         for type in ["train", "test"]:
             counts = [0, 0, 0]
             diffs = []
@@ -117,6 +118,10 @@ def compare_algs(data, alg1, alg2):
                 diff = line1["results"][f"{type}"][attr] - line2["results"][f"{type}"][attr]
                 counts[1 + sign(diff)] += 1
                 diffs.append(diff)
+
+                if type == "test" and diff < max_diff:
+                    max_diff = diff
+                    print("worst: ", max_diff, line1["settings"]['file'])
 
                 if alg1 == "streed" and alg2 == "ost":
                     if type == "train" and attr == "objective_score":
@@ -141,6 +146,10 @@ def main():
         alg_data = []
         for line in lines[1:]:
             _, settings, results = [eval(j) for j in line.split(";")]
+
+            with open(f"{DIRECTORY}/datasets/binary/{settings['file']}.txt") as f2:
+                if len(f2.readlines()) < 200: continue
+
             alg_data.append({
                 "settings": settings,
                 "results": results
