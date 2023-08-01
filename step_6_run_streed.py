@@ -40,8 +40,6 @@ def run_streed(parameters):
     # Convert parameters to arguments
     args = []
     for key, value in parameters.items():
-        if key == "test-file":
-            continue
         args.append(f"-{key}")
         args.append(f"{value}")
 
@@ -50,8 +48,9 @@ def run_streed(parameters):
         args.extend(["-time", str(TIME_OUT_IN_SECONDS)])
     args.extend([
         "-task", "survival-analysis",
-        "-use-lower-bound", "false",
-        *["-train-test-split", "0.25"] * (parameters["mode"] == "hyper"),
+        "-use-lower-bound", "1",
+        "-use-dataset-caching", "1",
+        "-use-branch-caching", "0",
     ])
 
     # Print executable call for convenience

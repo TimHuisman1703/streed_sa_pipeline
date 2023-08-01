@@ -58,10 +58,18 @@ def calculate_integrated_brier_score(root, train_instances, test_instances):
     test_instances = [inst for inst in test_instances if inst.time < max_train_time]
 
     # Get the non-extreme test-instance-times
-    times = sorted({inst.time for inst in test_instances})
-    q_10 = len(times) // 10
-    q_90 = 9 * len(times) // 10
-    times = times[q_10:q_90]
+    times = sorted(set([inst.time for inst in test_instances]))
+        
+    if len(times) >= 10:
+        lower = times[len(times) // 10]
+        upper = times[9 * len(times) // 10]
+        if upper == max(times):
+            upper -= 1e-3
+    else:
+        lower = times[0] + 1e-3
+        upper = times[-1] - 1e-3
+    times = np.arange(lower, upper)
+    
 
     # Create survival distribution estimates for each test instance
     estimates = []
@@ -81,7 +89,7 @@ def calculate_integrated_brier_score(root, train_instances, test_instances):
     test_instances_formatted = np.array([(inst.event, inst.time) for inst in test_instances], dtype=[("event", "?"), ("time", "f4")])
 
     # Use sksurv's IBS method
-    score = integrated_brier_score(train_instances_formatted, test_instances_formatted, estimates, times)
+    score = integrated_brier_score(train_instances_formatted, test_instances_formatted, np.asarray(estimates), np.asarray(times))
     return score
 
 def main():

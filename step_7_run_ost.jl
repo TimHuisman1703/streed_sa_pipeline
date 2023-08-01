@@ -54,7 +54,7 @@ function serialize_tree(tree, node_idx, feature_meanings)
                         push!(included_categores, key)
                     end
                 end
-                feature_description *= " in [\'" * join(included_categores, "\',\'") * "\']"
+                feature_description *= " in [\'" * join(included_categores, "\',\'") * "\']" # TODO : is this correct ? should each of these have '' or check if it is numerical or str?
             end
         end
 

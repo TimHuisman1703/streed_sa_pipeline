@@ -2,8 +2,10 @@ import os
 import shutil
 from utils import files_in_directory, parse_line
 from utils import DIRECTORY, ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY
+from collections import Counter
+#from collections.abc import Iterable
 
-MAX_BINARIZATIONS_PER_FEATURE = 25
+MAX_BINARIZATIONS_PER_FEATURE = 10
 
 # Checks for binary features that make the same split and removes one of them, and removes binary features for which all instances have the same value
 # Returns the new feature names (with some features removed) and the new instances
@@ -33,12 +35,19 @@ def remove_redundant_binary_features(feature_names, instances):
             if key in seen or complement_key in seen:
                 continue
             seen.add(key)
+            
+            true_sum = sum([inst[i] for inst in instances])
+            if true_sum <= 0.01 * len(instances) or true_sum >= 0.99 * len(instances):
+                continue # Skip because this feature represents less than 1% of the data
 
         # Leave the variable in the dataset
         new_feature_names.append(feature_names[i])
         for k in range(len(new_instances)):
             new_instances[k].append(instances[k][i])
-
+    num_old_features = len(instances[0]) - 2
+    num_new_features = len(new_instances[0]) - 2
+    if num_new_features < num_old_features:
+        print(f"Removed {num_old_features - num_new_features} redundant or non-informative features")
     return new_feature_names, new_instances
 
 # Turns the categorical features in a dataset to binary features
@@ -57,21 +66,41 @@ def turn_numeric(feature_names, instances):
 
         # Check whether this variable is not a numeric variable
         if any(type(j) == str for j in values):
-            values = sorted([str(j) for j in values])
+            values = sorted(values, key=lambda x: str(x))
 
             # If there are only two options, comparing to one of them will be enough
             if len(values) == 2:
                 values = [values[0]]
-
+            elif len(values) > MAX_BINARIZATIONS_PER_FEATURE:
+                counts = Counter([inst[i] for inst in instances])
+                values = []
+                last_value = []
+                for j, (key, val) in enumerate(counts.most_common()):
+                    if j < MAX_BINARIZATIONS_PER_FEATURE - 1:
+                        values.append(key)
+                    else:
+                        last_value.append(key)
+                values.append(last_value)
+                
+            
             for option in values:
                 # Create binary variables using this option
                 for k in range(len(instances)):
-                    new_instances[k].append(int(instances[k][i] == option))
+                    if isinstance(option, list):
+                        new_instances[k].append(int(any(instances[k][i] == o for o in option)))
+                    else:
+                        new_instances[k].append(int(instances[k][i] == option))
 
                 # Save data
                 new_feature_name = f"CatFeat{converted_features_amount}"
                 new_feature_names.append(new_feature_name)
-                new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == '{option}'"
+                if isinstance(option, list):
+                    new_feature_meanings[new_feature_name] = f"lambda x: any(x['{feature_names[i]}'] == o for o in [" \
+                        + ",".join([(f"'{o}'" if isinstance(o, str) else str(o)) for o in option]) + "])"
+                elif isinstance(option, str):
+                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == '{option}'"
+                else:
+                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == {option}"
                 converted_features_amount += 1
         else:
             # Leave the variable for what it is
@@ -93,18 +122,21 @@ def turn_binary(feature_names, instances):
 
     converted_features_amount = 0
     for i in range(2, len(instances[0])):
-        values = set([inst[i] for inst in instances])
+        values = [inst[i] for inst in instances]
 
         # Check whether this variable is not a binary variable
-        if values - set([0, 1]):
+        if set(values) - set([0, 1]):
             values = sorted([j for j in values])
 
             # Create a list of thresholds between values
             thresholds = [(values[j] + values[j + 1]) / 2 for j in range(len(values) - 1)]
-            if len(thresholds) > MAX_BINARIZATIONS_PER_FEATURE:
+            if len(set(thresholds)) > MAX_BINARIZATIONS_PER_FEATURE:
                 # Reduce the amount of thresholds to a certain maximum
                 indices = [round(((j + 0.5) * (len(thresholds) - 1)) / MAX_BINARIZATIONS_PER_FEATURE) for j in range(MAX_BINARIZATIONS_PER_FEATURE)]
                 thresholds = [thresholds[j] for j in indices]
+                
+            thresholds = sorted(list(set(thresholds)))
+            
 
             for threshold in thresholds:
                 # Create binary variables using this threshold
