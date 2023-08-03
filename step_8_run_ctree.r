@@ -5,7 +5,7 @@ library("readr")
 library("survival")
 
 directory <- getwd()
-dataset_type = "binary"
+dataset_type = "numeric"
 
 settings_file <- paste(directory, "/output/settings.txt", sep = "")
 

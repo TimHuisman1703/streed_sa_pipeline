@@ -8,7 +8,7 @@ println("\033[30;1mStarted\033[0m")
 total_start_time = time()
 
 DIRECTORY = dirname(Base.source_path())
-DATASET_TYPE = "binary"
+DATASET_TYPE = "original"
 
 # Import modules (takes long)
 using CSV
@@ -53,13 +53,13 @@ function serialize_tree(tree, node_idx, feature_meanings)
                     if categories[key]
                         name = key
                         if tryparse(Float64, name) === nothing
-                            name = "'" * name.replace("'", "\\'") * "'"
+                            name = "'" * replace(name, "'" => "\\'") * "'"
                         end
                         push!(included_categories, name)
                     end
                 end
 
-                feature_description *= " in [" * join([j.replace("'", "\\'") for j in included_categores], ",") * "]"
+                feature_description *= " in [" * join(included_categories, ",") * "]"
             end
         end
 

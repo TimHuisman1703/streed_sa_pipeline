@@ -78,7 +78,7 @@ def parse_settings(filename):
 def main():
     PARAM_OPTIONS = {
         "file": [
-            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if not j.startswith("generated_dataset_")
+            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if j.startswith("generated_dataset_")
         ],
         "max-depth": [3],
         "max-num-nodes": ["max"],

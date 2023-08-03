@@ -73,7 +73,11 @@ def calculate_integrated_brier_score(root, train_instances, test_instances, meth
     else:
         lower = times[0] + 1e-3
         upper = times[-1] - 1e-3
-    times = np.arange(lower, upper)
+    
+    if upper - lower <= 100:
+        times = [lower + j * (upper - lower) / 100 for j in range(101)]
+    else:
+        times = np.arange(lower, upper)
     
 
     # Create survival distribution estimates for each test instance

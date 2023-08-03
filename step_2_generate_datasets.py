@@ -137,7 +137,7 @@ def generate_dataset(n, f, c):
         for _ in range(f):
             instance.append(np.random.rand())
             instance.append(np.random.rand())
-            instance.append(np.random.randint(2))
+            instance.append(np.random.rand())
             instance.append(np.random.randint(2))
             instance.append("XYZ"[np.random.randint(3)])
             instance.append("ABCDE"[np.random.randint(5)])
@@ -148,13 +148,13 @@ def generate_dataset(n, f, c):
     for _ in range(f):
         allowed_splits.append((0, 1))
         allowed_splits.append((0, 1))
-        allowed_splits.append({*range(2)})
+        allowed_splits.append((0, 1))
         allowed_splits.append({*range(2)})
         allowed_splits.append({*"XYZ"})
         allowed_splits.append({*"ABCDE"})
 
     # Generate the ground truth tree
-    tree = generate_tree(2, allowed_splits)
+    tree = generate_tree(5, allowed_splits)
 
     # Figure out what `k` is needed to censor each particular instance
     ks = []
@@ -189,10 +189,10 @@ def main():
     # The settings to generate with
     SETTINGS = [
         (n, f, c, i)
-            for n in [100, 500, 1000]
-            for f in [1, 2, 4]
+            for n in [100,  200, 500, 1000, 2000, 5000, 10000]
+            for f in [1]
             for c in [10, 50, 80]
-            for i in range(1)
+            for i in range(5)
     ]
 
     # Create necessary directories
