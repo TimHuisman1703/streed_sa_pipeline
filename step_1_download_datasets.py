@@ -35,6 +35,10 @@ def main():
             for i in range(len(column)):
                 column[i] = column[i].split("-")[0]
 
+        # Drop time2 column since it often correlates too much with time
+        if "time2" in df.columns:
+            df.drop(columns=["time2"], inplace=True)
+
         # Write headers
         f = open(f"{ORIGINAL_DIRECTORY}/{dataset_name}.txt", "w")
         f.write("time,event,")
