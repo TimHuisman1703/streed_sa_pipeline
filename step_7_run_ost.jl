@@ -48,14 +48,18 @@ function serialize_tree(tree, node_idx, feature_meanings)
             else
                 # Use "... in [...]" for categorical features
                 categories = IAI.get_split_categories(tree, node_idx)
-                included_categores = []
+                included_categories = []
                 for key in keys(categories)
                     if categories[key]
-                        push!(included_categores, key)
+                        name = key
+                        if tryparse(Float64, name) === nothing
+                            name = "'" * name.replace("'", "\\'") * "'"
+                        end
+                        push!(included_categories, name)
                     end
                 end
-                feature_description *= " in [\'" * join(included_categores, "\',\'") * "\']" # TODO : is this correct ? should each of these have '' or check if it is numerical or str?
-                # TODO : also consider ampersands ' in the category name, see cgd data set, 'fac_center' feature, with value 'L.A. Children\'s Hosp'
+
+                feature_description *= " in [" * join([j.replace("'", "\\'") for j in included_categores], ",") * "]"
             end
         end
 

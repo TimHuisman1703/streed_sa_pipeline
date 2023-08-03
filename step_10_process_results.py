@@ -130,11 +130,6 @@ def compare_algs(data, alg1, alg2):
                     max_diff = diff
                     print("worst: ", max_diff, line1["settings"]['file'])
 
-                if alg1 == "streed" and alg2 == "ost":
-                    if type == "train" and attr == "objective_score":
-                        if diff < 0:
-                            print(line1, line2)
-
             p, p_str = format_p(wilcoxon(diffs)[1])
             print(f"\033[37;1m{name} ({type})\033[0m")
             print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")

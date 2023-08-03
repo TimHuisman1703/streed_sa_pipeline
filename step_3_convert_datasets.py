@@ -81,15 +81,22 @@ def turn_numeric(feature_names, instances):
                     else:
                         last_value.append(key)
                 values.append(last_value)
-                
             
-            for _option in values:
-                option = _option if not isinstance(_option, str) else _option.replace("'", "\\'")
-                
+            def escape(obj):
+                if isinstance(obj, list):
+                    return [escape(j) for j in obj]
+                elif isinstance(obj, str):
+                    return obj.replace("'", "\\'")
+                else:
+                    return obj
+
+            for option in values:
+                option_escaped = escape(option)
+
                 # Create binary variables using this option
                 for k in range(len(instances)):
                     if isinstance(option, list):
-                        new_instances[k].append(int(any(instances[k][i] == o for o in option)))
+                        new_instances[k].append(int(instances[k][i] in option))
                     else:
                         new_instances[k].append(int(instances[k][i] == option))
 
@@ -97,12 +104,12 @@ def turn_numeric(feature_names, instances):
                 new_feature_name = f"CatFeat{converted_features_amount}"
                 new_feature_names.append(new_feature_name)
                 if isinstance(option, list):
-                    new_feature_meanings[new_feature_name] = f"lambda x: any(x['{feature_names[i]}'] == o for o in [" \
-                        + ",".join([(f"'{o}'" if isinstance(o, str) else str(o)) for o in option]) + "])"
+                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] in [" \
+                        + ",".join([(f"'{o}'" if isinstance(o, str) else str(o)) for o in option_escaped]) + "]"
                 elif isinstance(option, str):
-                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == '{option}'"
+                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == '{option_escaped}'"
                 else:
-                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == {option}"
+                    new_feature_meanings[new_feature_name] = f"lambda x: x['{feature_names[i]}'] == {option_escaped}"
                 converted_features_amount += 1
         else:
             # Leave the variable for what it is

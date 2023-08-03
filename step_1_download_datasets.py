@@ -48,7 +48,7 @@ def main():
             time = max(1e-6, row["time"])
             event = int(row["event"] > 0.5)
             f.write(f"{time},{event},")
-            f.write(",".join([str(row[key]).replace(",", ".").replace("'", "\\'") for key in feature_names]))
+            f.write(",".join([str(row[key]).replace(",", ".") for key in feature_names]))
             f.write("\n")
         f.close()
 
