@@ -1,4 +1,4 @@
-from math import log
+from math import log, exp
 import os
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
@@ -73,10 +73,12 @@ def kaplan_meier(instances):
 
     d = {0: 1}
     at_risk = len(instances)
+    prev_t = 0
     for t in sorted(ts.keys()):
         left, died = ts[t]
-        d[t] = died / at_risk
+        d[t] = d[prev_t] * (1 - died / at_risk)
         at_risk -= died + left
+        prev_t = t
 
     keys = [*d.keys()]
     def f(x):
@@ -95,6 +97,11 @@ def kaplan_meier(instances):
                 a = mid
         return d[keys[a]]
 
+    return f
+
+def leblanc(hazard_function, theta):
+    def f(t):
+        return exp(-theta * hazard_function(t))
     return f
 
 class Instance:
@@ -124,7 +131,8 @@ class Tree:
         self.instances = instances or []
 
         self.theta = None
-        self.distribution = None
+        self.kaplan_meier_distribution = None
+        self.leblanc_distribution = None
         self.error = None
 
         if instances:
@@ -141,7 +149,7 @@ class Tree:
             self.instances.append(instance)
 
         if not self.trees:
-            return (self.theta, self.distribution)
+            return (self.theta, self.kaplan_meier_distribution, self.leblanc_distribution)
 
         if not self.criterium(instance.feats):
             return self.trees[0].classify(instance, store)
@@ -153,9 +161,18 @@ class Tree:
         hazards = [Tree.hazard_function(inst.time) for inst in self.instances]
 
         self.theta = calculate_theta(events, hazards)
-        self.distribution = kaplan_meier(self.instances)
+        self.kaplan_meier_distribution = kaplan_meier(self.instances)
 
-        return (self.theta, self.distribution)
+        return (self.theta, self.kaplan_meier_distribution)
+
+    def calculate_leblanc_km_estimator(self, hazard_function):
+        if self.trees:
+            for i in range(2):
+                self.trees[i].calculate_leblanc_km_estimator(hazard_function)
+            return
+        
+        assert(self.theta is not None)
+        self.leblanc_distribution = leblanc(hazard_function, self.theta)
 
     def calculate_error(self):
         if self.trees:
@@ -166,8 +183,8 @@ class Tree:
                 self.error += self.trees[i].error
             return self.error
 
-        if self.theta == None or self.distribution == None:
-            self.theta, self.distribution = self.calculate_label()
+        if self.theta == None or self.kaplan_meier_distribution == None:
+            self.theta, self.kaplan_meier_distribution = self.calculate_label()
 
         event_sum = 0
         negative_log_hazard_sum = 0
@@ -282,6 +299,8 @@ def fill_tree(tree, dataset_filename):
 
     for inst in instances:
         tree.classify(inst, True)
+    
     tree.calculate_error()
+    tree.calculate_leblanc_km_estimator(Tree.hazard_function)
 
     return instances

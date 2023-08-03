@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from scipy.stats import wilcoxon
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
@@ -16,6 +17,10 @@ TRAIN_TEST_SCORE_TYPES = [
     ("Objective score", "objective_score"),
     ("Concordance score", "concordance_score"),
 ]
+
+def format_p(p):
+    if p < 0.05: return p, f"\033[35;1mp = {p}\033[0m"
+    return p, f"p = {p}"
 
 # Makes plots for each of the algorithms by sorting a list of outcomes and laying it out over a [0, 1]-range
 #
@@ -87,11 +92,12 @@ def compare_algs(data, alg1, alg2):
         diff = line1["results"]["num_nodes"] - line2["results"]["num_nodes"]
         counts[1 + sign(diff)] += 1
         diffs.append(diff)
+    p, p_str = format_p(wilcoxon(diffs)[1])
     print("\033[37;1mNum nodes\033[0m")
     print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
     print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
     print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
-    print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4})\033[0m")
+    print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4}), {p_str} \033[0m")
     print()
 
     # Compare IBS ratio
@@ -101,11 +107,12 @@ def compare_algs(data, alg1, alg2):
         diff = line1["results"]["integrated_brier_score_ratio"] - line2["results"]["integrated_brier_score_ratio"]
         counts[1 + sign(diff)] += 1
         diffs.append(diff)
+    p, p_str = format_p(wilcoxon(diffs)[1])
     print("\033[37;1mIBS Ratio\033[0m")
     print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
     print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
     print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
-    print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4})\033[0m")
+    print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4}), {p_str} \033[0m")
     print()
 
     # Compare scores
@@ -128,11 +135,12 @@ def compare_algs(data, alg1, alg2):
                         if diff < 0:
                             print(line1, line2)
 
+            p, p_str = format_p(wilcoxon(diffs)[1])
             print(f"\033[37;1m{name} ({type})\033[0m")
             print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
             print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
             print(f"\033[32m  {alg1} > {alg2}:    {counts[2]}\033[0m")
-            print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4})\033[0m")
+            print(f"\033[30m  Difference: (μ, σ²) = ({np.average(diffs):.4}, {np.var(diffs):.4}), {p_str} \033[0m")
             print()
 
 def main():

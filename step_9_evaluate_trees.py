@@ -7,52 +7,57 @@ from utils import DIRECTORY, ORIGINAL_DIRECTORY
 #
 # root          The tree to evaluate the instances with
 # instances     The instances to calculate the concordance with
-def calculate_concordance(root, instances):
+def calculate_concordance(root, instances, method="leblanc"):
     # Group the instances together based on their theta
     buckets = {}
-    for inst in instances:
-        theta, _ = root.classify(inst)
-        if theta not in buckets:
-            buckets[theta] = [[], [], []]
-        buckets[theta][inst.event].append(inst)
-        buckets[theta][2].append(inst)
-    buckets = [buckets[key] for key in sorted(buckets.keys())]
-    for i in range(len(buckets)):
-        for j in range(3):
-            buckets[i][j] = sorted(buckets[i][j], key=lambda x: x.time)
+    
+    if True or method == "leblanc":
+        for inst in instances:
+            theta, _, _ = root.classify(inst)
+            if theta not in buckets:
+                buckets[theta] = [[], [], []] # [censored, death, all]
+            buckets[theta][inst.event].append(inst)
+            buckets[theta][2].append(inst)
+        buckets = [buckets[key] for key in sorted(buckets.keys())]
+        for i in range(len(buckets)):
+            for j in range(3):
+                buckets[i][j] = sorted(buckets[i][j], key=lambda x: x.time)
 
-    # Apply binary search to compute the amount of discordance and concordant pairs efficiently
-    cc = tr = dc = 0
-    for i in range(len(buckets)):
-        for j in range(len(buckets)):
-            for inst_i in buckets[i][2]:
-                a, b = 0, len(buckets[j][1])
-                while a < b:
-                    mid = (a + b) // 2
-                    if buckets[j][1][mid].time < inst_i.time:
-                        a = mid + 1
+        # Apply binary search to compute the amount of discordance and concordant pairs efficiently
+        cc = tr = dc = 0
+        for i in range(len(buckets)):
+            for j in range(len(buckets)):
+                for inst_i in buckets[i][2]:
+                    a, b = 0, len(buckets[j][1])
+                    while a < b:
+                        mid = (a + b) // 2
+                        if buckets[j][1][mid].time < inst_i.time:
+                            a = mid + 1
+                        else:
+                            b = mid
+
+                    if i < j:
+                        cc += a
+                    elif i == j:
+                        tr += a
                     else:
-                        b = mid
+                        dc += a
 
-                if i < j:
-                    cc += a
-                elif i == j:
-                    tr += a
-                else:
-                    dc += a
-
-    # Return C-index
-    if cc + tr + dc:
-        return (cc + 0.5 * tr) / (cc + tr + dc)
+        # Return C-index
+        if cc + tr + dc:
+            return (cc + 0.5 * tr) / (cc + tr + dc)
+        else:
+            return 1
     else:
-        return 1
+        # CTree does not generate a theta, but a kaplan meier distribution in the leaf node, so when comparing to CTree, the actual distributions need to be compared.
+        raise NotImplementedError()
 
 # Calculates the Integrated Brier Score for a certain tree
 #
 # root              The tree to evaluate the instances with
 # train_instances   The train instances used to create the tree
 # test_instances    The train instances used to test the tree
-def calculate_integrated_brier_score(root, train_instances, test_instances):
+def calculate_integrated_brier_score(root, train_instances, test_instances, method='leblanc'):
     # Drop test instances that appear after the latest train instance (ideally just a few)
     max_train_time = max(inst.time for inst in train_instances)
     test_instances = [inst for inst in test_instances if inst.time < max_train_time]
@@ -75,14 +80,15 @@ def calculate_integrated_brier_score(root, train_instances, test_instances):
     estimates = []
     estimates_per_leaf = {}
     for inst in test_instances:
-        _, survival_distribution = root.classify(inst)
+        _, km_survival_distribution, leblanc_survival_distribution = root.classify(inst)
+        distribution = leblanc_survival_distribution if method == 'leblanc' else km_survival_distribution
 
-        if survival_distribution not in estimates_per_leaf:
+        if distribution not in estimates_per_leaf:
             estimate = []
             for t in times:
-                estimate.append(survival_distribution(t))
-            estimates_per_leaf[survival_distribution] = estimate
-        estimates.append(estimates_per_leaf[survival_distribution])
+                estimate.append(distribution(t))
+            estimates_per_leaf[distribution] = estimate
+        estimates.append(estimates_per_leaf[distribution])
 
     # Format all instances to structured array
     train_instances_formatted = np.array([(inst.event, inst.time) for inst in train_instances], dtype=[("event", "?"), ("time", "f4")])
@@ -95,6 +101,9 @@ def calculate_integrated_brier_score(root, train_instances, test_instances):
 def main():
     for algorithm in ["ctree", "ost", "streed"]:
         print(f"\n\033[33;1mEvaluating {algorithm.upper()}'s output...\033[0m")
+        
+        # Survival distribution method
+        sd_method = "kaplan_meier"#'kaplan_meier' if algorithm == 'ctree' else 'leblanc'
 
         # Read trees
         f = open(f"{DIRECTORY}/output/{algorithm}_trees.csv")
@@ -125,8 +134,8 @@ def main():
             results["num_nodes"] = tree.size()
 
             # Calculate the Integrated Brier Score ratio
-            base_tree_ibs = calculate_integrated_brier_score(base_tree, train_instances, test_instances)
-            curr_tree_ibs = calculate_integrated_brier_score(tree, train_instances, test_instances)
+            base_tree_ibs = calculate_integrated_brier_score(base_tree, train_instances, test_instances, method='kaplan_meier')
+            curr_tree_ibs = calculate_integrated_brier_score(tree, train_instances, test_instances, method=sd_method)
             ibs_ratio = 1
             if base_tree_ibs > 1e-6:
                 ibs_ratio = 1 - curr_tree_ibs / base_tree_ibs
@@ -157,7 +166,7 @@ def main():
                     objective_score = 0
 
                 # Calculate Harrell's C-index
-                concordance_score = calculate_concordance(tree, instances)
+                concordance_score = calculate_concordance(tree, instances, method=sd_method)
 
                 results[name] = {
                     "objective_score": objective_score,
