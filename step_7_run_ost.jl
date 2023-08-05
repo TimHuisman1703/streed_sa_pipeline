@@ -123,8 +123,8 @@ open(DIRECTORY * "/output/settings.txt") do f
                             random_seed=random_seed,
                             skip_curve_fitting=false,
                             death_minbucket=0,
+                            max_depth=max_depth,
                         ),
-                        max_depth=0:max_depth,
                     )
                 else
                     object_to_fit = IAI.OptimalTreeSurvivalLearner(
