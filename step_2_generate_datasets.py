@@ -137,7 +137,6 @@ def generate_dataset(n, f, c):
         # Generate the ground truth tree and sample instance times with it
         num_nodes = generate_tree(4, instances, 1, 1)
         if num_nodes > -1:
-            print(num_nodes)
             break
 
     # Figure out what `k` is needed to censor each particular instance
@@ -172,7 +171,7 @@ def main():
     # The settings to generate with
     SETTINGS = [
         (n, f, c, i)
-            for n in [100, 200, 500, 1000]
+            for n in [1000]
             for f in [1]
             for c in [10, 50, 80]
             for i in range(5)

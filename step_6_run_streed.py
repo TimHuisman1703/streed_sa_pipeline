@@ -9,7 +9,7 @@ from utils import DIRECTORY
 EXEC_PATH = f"{DIRECTORY}/streed2/out/build/x64-Release/STREED.exe"
 STREED_DIRECTORY = f"{DIRECTORY}/streed2/data/survival-analysis"
 
-TIME_OUT_IN_SECONDS = 60
+TIME_OUT_IN_SECONDS = 600
 
 DATASET_TYPE = "binary"
 
