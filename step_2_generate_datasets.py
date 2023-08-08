@@ -169,9 +169,12 @@ def generate_dataset(n, f, c):
 
 def main():
     # The settings to generate with
+    
+    MAX_N = 5000
+    ns = [100, 200, 500, 1000, 2000, 5000]
+    
     SETTINGS = [
-        (n, f, c, i)
-            for n in [1000]
+        (f, c, i)
             for f in [1]
             for c in [10, 50, 80]
             for i in range(5)
@@ -190,20 +193,21 @@ def main():
             os.remove(f"{ORIGINAL_DIRECTORY}/{filename}")
 
     # Generate a dataset for each setting
-    for n, f, c, i in SETTINGS:
-        instances = generate_dataset(n, f, c / 100)
+    for f, c, i in SETTINGS:
+        instances = generate_dataset(MAX_N, f, c/100)
 
-        filename = f"generated_dataset_{n:05}_{f}_{c}_{i}"
+        for n in ns:
+            filename = f"generated_dataset_{n:05}_{f}_{c}_{i}"
 
-        file = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt", "w")
-        file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
-        file.write("\n")
-        for inst in instances:
-            file.write(",".join(str(j) for j in inst))
+            file = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt", "w")
+            file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
             file.write("\n")
-        file.close()
+            for inst in instances[:n]:
+                file.write(",".join(str(j) for j in inst))
+                file.write("\n")
+            file.close()
 
-        print(f"\033[35mCreated \033[1m{filename}\033[0m")
+            print(f"\033[35mCreated \033[1m{filename}\033[0m")
 
     print("\033[32;1mDone!\033[0m")
 
