@@ -242,9 +242,6 @@ class Tree:
         return self.to_string([]).strip()
 
 def get_feature_meanings(filename):
-    if len(filename.split("_partition_")):
-        filename = filename.replace("train/", "").replace("test/", "").split("_partition_")[0]
-
     f = open(f"{DIRECTORY}/datasets/feature_meanings/{filename}.txt")
     lines = f.read().strip().split("\n")
     f.close()

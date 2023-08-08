@@ -10,6 +10,7 @@ EXEC_PATH = f"{DIRECTORY}/streed2/out/build/x64-Release/STREED.exe"
 STREED_DIRECTORY = f"{DIRECTORY}/streed2/data/survival-analysis"
 
 TIME_OUT_IN_SECONDS = 600
+PARETO_PRUNING = True
 
 DATASET_TYPE = "binary"
 
@@ -32,14 +33,48 @@ def make_streed_compatible(input_path, output_path):
 
     return feature_names
 
+pareto_front = []
+
+def create_pareto_key(parameters):
+    filename = parameters["core-file"]
+    depth = parameters["max-depth"]
+
+    if filename.startswith("generated_dataset_"):
+        n, f, c = [int(j) for j in filename.split("_")[2:5]]
+        return (True, n, f, c, depth)
+    else:
+        return (False, filename, depth, None, None)
+
+def contains_pareto_key(key):
+    if key[0]:
+        _, n, f, c, depth = key
+        for is_synthetic, other_n, other_f, other_c, other_depth in pareto_front:
+            if is_synthetic and other_n <= n and other_f <= f and other_c == c and other_depth <= depth:
+                return True
+        return False
+    else:
+        _, filename, depth, _, _ = key
+        for is_synthetic, other_filename, other_depth, _, _ in pareto_front:
+            if not is_synthetic and other_filename == filename and other_depth <= depth:
+                return True
+        return False
+
 # Runs STreeD with a set of parameters
 # Returns resulting tree and the time needed to generate it (a negative time indicates a time out)
 #
 # parameters    The parameters to run the algorithm with
 def run_streed(parameters):
+    global pareto_front
+    pareto_key = create_pareto_key(parameters)
+    if PARETO_PRUNING:
+        if contains_pareto_key(pareto_key):
+            return -1e9, "[None]"
+
     # Convert parameters to arguments
     args = []
     for key, value in parameters.items():
+        if key == "core-file":
+            continue
         args.append(f"-{key}")
         args.append(f"{value}")
 
@@ -64,8 +99,13 @@ def run_streed(parameters):
     out_lines = [j.strip() for j in out.decode().split("\n")]
     time_line = [j for j in out_lines if j.startswith("CLOCKS FOR SOLVE:")][0]
     time = float(time_line.split()[-1])
+
+    # Check whether there was a time-out first
     if "No tree found" in out_lines:
+        if PARETO_PRUNING:
+            pareto_front.append(pareto_key)
         return -time, "[None]"
+    
     tree_line = [j for j in out_lines if j.startswith("Tree 0:")][0]
     tree = tree_line.split()[-1]
 
@@ -125,12 +165,14 @@ def main():
             time_duration, tree = run_streed(params)
             if time_duration >= 0:
                 print(f"\033[33;1m{tree}\033[0m")
-                print(f"\033[34mTime: \033[1m{time_duration:.3f}\033[0;34m seconds")
-            else:
+                print(f"\033[34mTime: \033[1m{time_duration:.3f}\033[0;34m seconds\033[0m")
+            elif time_duration >= -1e8:
                 print(f"\033[31mOut of time: \033[1m{-time_duration:.3f}\033[0;31m seconds\033[0m")
+            else:
+                print(f"\033[30mIgnored due to Pareto front: {params['file'].split('/')[-1]} (depth = {params['max-depth']})\033[0m")
 
             # Parse tree string to lambda-structure
-            feature_meanings = get_feature_meanings(train_filename)
+            feature_meanings = get_feature_meanings(params["core-file"])
             tree = serialize_tree_with_features(eval(tree), feature_names, feature_meanings)
             results.append((params, time_duration, tree))
 

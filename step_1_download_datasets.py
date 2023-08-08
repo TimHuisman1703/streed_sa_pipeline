@@ -29,6 +29,10 @@ def main():
         df = df.dropna()
         removed_instances = total_instances - df.shape[0]
 
+        # Drop datasets with less than 2000 instances
+        if df.shape[0] < 2000:
+            continue
+
         # Change years into different format (this caused errors for OST)
         if dataset_name == "whas500":
             column = df["fac_year"]

@@ -7,13 +7,15 @@ library("mlr3")
 library("mlr3proba")
 library("mlr3extralearners")
 library("mlr3tuning")
- 
+
 
 directory <- getwd()
 dataset_type = "numeric"
 TIME_OUT_IN_SECONDS <- 600
 
 settings_file <- paste(directory, "/output/settings.txt", sep = "")
+
+total_start_time <- Sys.time()
 
 # Serialize the tree learner to a lambda-structure
 #
@@ -90,6 +92,7 @@ for (settings_line in settings_lines) {
   # Read settings
   settings <- fromJSON(settings_line)
   name <- settings["file"]
+  core_name <- settings["core-file"]
   max_depth <- settings["max-depth"][[1]]
 
   train_filename <- paste(dataset_type, settings["file"], sep = "/")
@@ -99,8 +102,6 @@ for (settings_line in settings_lines) {
   sdata <- read.csv(file_path, stringsAsFactors = FALSE)
   
   # Fit and capture tree
-  start_time <- Sys.time()
-
   set.seed(1)
 
   surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
@@ -119,13 +120,13 @@ for (settings_line in settings_lines) {
   )
   tuner = tnr("grid_search", resolution = 1)
 
+  start_time <- Sys.time()
   tuner$optimize(instance)
+  end_time <- Sys.time()
 
   surv.lrn$param_set$values = instance$result_learner_param_vals
   surv.lrn$train(surv.task)
   tree <- surv.lrn$model
-  
-  end_time <- Sys.time()
 
   tree_lines <- capture.output(print(tree))
 
@@ -135,11 +136,6 @@ for (settings_line in settings_lines) {
 
   # Read feature meanings
   partition_idx <- regexpr("_partition_.*$", name)[1]
-  core_name <- name
-  if (partition_idx > -1) {
-    slash_idx <- regexpr("/.*$", name)[1]
-    core_name <- substring(name, slash_idx + 1, partition_idx - 1)
-  }
   feature_meanings_file_path <- paste(directory, "/datasets/feature_meanings/", core_name, ".txt", sep = "")
   feature_meanings_lines <- read_lines(feature_meanings_file_path)
 
@@ -162,6 +158,7 @@ for (settings_line in settings_lines) {
 
   print(tree)
   print(train_filename)
+  print(paste("Time:", end_time - start_time, "seconds"))
 
   id <- id + 1
 }
@@ -170,5 +167,8 @@ for (settings_line in settings_lines) {
 sink(paste(directory, "/output/ctree_trees.csv", sep = ""))
 cat(result)
 sink()
+
+total_end_time <- Sys.time()
+  print(paste("Total time:", total_end_time - total_start_time, "seconds"))
 
 print("Done!")

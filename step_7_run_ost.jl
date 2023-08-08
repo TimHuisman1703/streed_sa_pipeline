@@ -81,7 +81,8 @@ end
 results = []
 open(DIRECTORY * "/output/settings.txt") do f
     # Default parameters for warming up
-    file = "ovarian"
+    file = "divorce"
+    core_file = file
     max_depth = 0
     max_num_nodes = 0
     cost_complexity = 0
@@ -176,14 +177,8 @@ open(DIRECTORY * "/output/settings.txt") do f
 
         if !warming_up
             # Read feature meanings
-            core_name = file
-            if contains(core_name, "_partition_")
-                slash_idx = findfirst("/", core_name).start
-                partition_idx = findfirst("_partition_", core_name).start
-                core_name = core_name[(slash_idx + 1):(partition_idx - 1)]
-            end
             feature_meanings = Dict()
-            open(DIRECTORY * "/datasets/feature_meanings/" * core_name * ".txt") do fmf
+            open(DIRECTORY * "/datasets/feature_meanings/" * core_file * ".txt") do fmf
                 while !eof(fmf)
                     text = readline(fmf)
                     equals_idx = findfirst(" = ", text).start
@@ -212,6 +207,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         settings = JSON.parse(settings_line)
 
         file = get!(settings, "file", "404")
+        core_file = get!(settings, "core-file", "404")
         max_depth = get!(settings, "max-depth", 3)
         max_num_nodes = get!(settings, "max-num-nodes", 7)
         cost_complexity = get!(settings, "cost-complexity", 0)

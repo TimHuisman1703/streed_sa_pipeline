@@ -45,6 +45,9 @@ def prepare_parameters(parameters):
     # Default cost complexity to 0
     if "cost-complexity" not in parameters:
         parameters["cost-complexity"] = 0
+    
+    # Save core-filename
+    parameters["core-file"] = parameters["file"]
 
     # If desired, use the k-fold splits of the given dataset instead
     if "split" not in parameters:
@@ -78,7 +81,7 @@ def parse_settings(filename):
 def main():
     PARAM_OPTIONS = {
         "file": [
-            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if j.startswith("generated_dataset_")
+            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY)
         ],
         "max-depth": [4],
         "max-num-nodes": ["max"],

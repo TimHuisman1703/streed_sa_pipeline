@@ -3,7 +3,6 @@ import shutil
 from utils import files_in_directory, parse_line
 from utils import DIRECTORY, ORIGINAL_DIRECTORY, NUMERIC_DIRECTORY, BINARY_DIRECTORY
 from collections import Counter
-#from collections.abc import Iterable
 
 MAX_BINARIZATIONS_PER_FEATURE = 10
 
