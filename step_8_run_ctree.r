@@ -106,7 +106,7 @@ for (settings_line in settings_lines) {
   surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
 
   surv.lrn = lrn("surv.ctree",
-    maxdepth  = to_tune(1:max_depth),
+    maxdepth  = max_depth,
     mincriterion = to_tune(c(0.9, 0.925, 0.95, 0.97, 0.98, 0.99, 0.995, 0.999))
   )
 
