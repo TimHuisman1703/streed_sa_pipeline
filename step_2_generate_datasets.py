@@ -111,7 +111,7 @@ def generate_tree(depth, instances, min_bucket, depth_margin):
 #
 # n         The amount of instances in the dataset
 # f         How many times to repeat the six preset features
-# c         The fraction of instances that should be censored (between 0 and 1)
+# c         The percentage of instances that should be censored (between 0 and 100)
 def generate_dataset(n, f, c):
     while True:
         instances = []
@@ -148,22 +148,35 @@ def generate_dataset(n, f, c):
         inst[1] = u
         ks.append(inst[0] / u)
 
-    # Find a `k` such that `100c` percent of the instances is censored
+    # Find a `k` such that `c` percent of the instances is censored
     ks = sorted(ks)
-    k = ks[int(n * (1 + 1e-9 - c))] - 1e-9
+    k = ks[int(n * (1 + 1e-9 - c / 100))] - 1e-9
 
     # Apply censoring to the chosen instances
+    noncensored_instances = []
+    censored_instances = []
     for inst in instances:
         censor = k * inst[1]
 
         if censor < inst[0]:
             inst[0] = censor
             inst[1] = 0
+            censored_instances.append(inst)
         else:
             inst[1] = 1
-
-    # Sort the instance based on time
-    instances = sorted(instances, key=lambda x: (x[0], x[1]))
+            noncensored_instances.append(inst)
+    
+    assert len(censored_instances) == n * c // 100
+    
+    # Interleave the censored and non-censored data to properly divide them among sublists
+    take_noncensored = 100 - c
+    take_censored = c
+    instances = []
+    while len(instances) < n:
+        for _ in range(take_noncensored):
+            instances.append(noncensored_instances.pop())
+        for _ in range(take_censored):
+            instances.append(censored_instances.pop())
 
     return instances
 
@@ -194,7 +207,7 @@ def main():
 
     # Generate a dataset for each setting
     for f, c, i in SETTINGS:
-        instances = generate_dataset(MAX_N, f, c/100)
+        instances = generate_dataset(MAX_N, f, c)
 
         for n in ns:
             filename = f"generated_dataset_{n:05}_{f}_{c}_{i}"
@@ -202,8 +215,10 @@ def main():
             file = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt", "w")
             file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
             file.write("\n")
-            np.random.shuffle(instances)
-            for inst in instances[:n]:
+
+            curr_instances = instances[:n]
+            np.random.shuffle(curr_instances)
+            for inst in curr_instances:
                 file.write(",".join(str(j) for j in inst))
                 file.write("\n")
             file.close()
