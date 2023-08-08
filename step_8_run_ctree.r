@@ -3,9 +3,15 @@ library("jsonlite")
 library("partykit")
 library("readr")
 library("survival")
+library("mlr3")
+library("mlr3proba")
+library("mlr3extralearners")
+library("mlr3tuning")
+ 
 
 directory <- getwd()
 dataset_type = "numeric"
+TIME_OUT_IN_SECONDS <- 600
 
 settings_file <- paste(directory, "/output/settings.txt", sep = "")
 
@@ -84,24 +90,43 @@ for (settings_line in settings_lines) {
   # Read settings
   settings <- fromJSON(settings_line)
   name <- settings["file"]
-  max_depth <- settings["max-depth"]
+  max_depth <- settings["max-depth"][[1]]
 
   train_filename <- paste(dataset_type, settings["file"], sep = "/")
 
   # Read train data
   file_path <- paste(directory, "/datasets/", train_filename, ".txt", sep = "")
   sdata <- read.csv(file_path, stringsAsFactors = FALSE)
-
+  
   # Fit and capture tree
   start_time <- Sys.time()
-  tree <- ctree(
-    Surv(time, event) ~ .,
-    data = sdata,
-    control = ctree_control(
-      maxdepth = max_depth
-    )
+
+  set.seed(1)
+
+  surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
+
+  surv.lrn = lrn("surv.ctree",
+    maxdepth  = to_tune(1:max_depth),
+    mincriterion = to_tune(c(0.9, 0.925, 0.95, 0.97, 0.98, 0.99, 0.995, 0.999))
   )
+
+    instance = ti(
+    task = surv.task,
+    learner = surv.lrn,
+    resampling = rsmp("cv", folds = 5),
+    measures = msr("surv.cindex"),
+    terminator = trm("run_time", secs=TIME_OUT_IN_SECONDS)
+  )
+  tuner = tnr("grid_search", resolution = 1)
+
+  tuner$optimize(instance)
+
+  surv.lrn$param_set$values = instance$result_learner_param_vals
+  surv.lrn$train(surv.task)
+  tree <- surv.lrn$model
+  
   end_time <- Sys.time()
+
   tree_lines <- capture.output(print(tree))
 
   # Parse tree
