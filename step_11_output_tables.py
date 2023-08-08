@@ -45,6 +45,9 @@ def main():
     means_hc = df.groupby(["dataset", "method"]).mean()["test_concordance_score"].unstack("method")
     best_hc = means_hc.max(axis=1)
     rank_hc = means_hc.round(3).rank(axis=1, ascending=False).mean(axis=0)
+    means_runtime = df.groupby(["dataset", "method"]).mean()["runtime"].unstack("method")
+
+    print(means_runtime)
 
     wins = {t: {a: 0 for a in algorithms} for t in ["ibs", "hc"]}
 
@@ -58,7 +61,12 @@ def main():
                 for algorithm in algorithms:
                     score = means_hc.loc[dataset, algorithm]
                     score_str = f"{score:.2f}"
-                    if score + 0.0001 >= best_hc[dataset]:
+                    
+                    if means_runtime.loc[dataset, algorithm] >= 600:
+                        print(f"-  {sep} % Timeout {algorithm}, HC {score_str}")
+                        continue
+
+                    if round(score, 2)  >= round(best_hc[dataset], 2):
                         score_str = "\\textbf{" + score_str + "}"
                         wins["hc"][algorithm] += 1
                     print(f"{score_str} {sep} % HC {algorithm}")
@@ -67,7 +75,12 @@ def main():
                     sep = "\\\\" if algorithm == algorithms[-1] else "&"
                     score = means_ibs.loc[dataset, algorithm]
                     score_str = f"{score:.2f}"
-                    if score + 0.0005 >= best_ibs[dataset]:
+
+                    if means_runtime.loc[dataset, algorithm] >= 600:
+                        print(f"-  {sep} % Timeout {algorithm}, IBS {score_str}")
+                        continue
+
+                    if round(score, 2) >= round(best_ibs[dataset], 2):
                         score_str = "\\textbf{" + score_str + "}"
                         wins["ibs"][algorithm] += 1
                     print(f"{score_str} {sep} % IBS {algorithm}")
@@ -82,7 +95,7 @@ def main():
 
             for algorithm in algorithms:
                 sep = "\\\\" if algorithm == algorithms[-1] else "&"
-                wins_str = f"{wins['hc'][algorithm]}"
+                wins_str = f"{wins['ibs'][algorithm]}"
                 if wins['ibs'][algorithm] >= max(wins['ibs'].values()):
                     wins_str = "\\textbf{" + wins_str + "}"
                 print(f"{wins_str} {sep} % {algorithm} # IBS wins")
