@@ -202,6 +202,7 @@ def main():
             file = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt", "w")
             file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
             file.write("\n")
+            np.random.shuffle(instances)
             for inst in instances[:n]:
                 file.write(",".join(str(j) for j in inst))
                 file.write("\n")
