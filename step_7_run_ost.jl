@@ -123,15 +123,15 @@ open(DIRECTORY * "/output/settings.txt") do f
                             random_seed=random_seed,
                             skip_curve_fitting=false,
                             death_minbucket=0,
-                            max_depth=max_depth,
                         ),
+                        max_depth=0:max_depth,
                     )
                 else
                     object_to_fit = IAI.OptimalTreeSurvivalLearner(
                         random_seed=random_seed,
                         skip_curve_fitting=false,
                         cp=cost_complexity,
-                        death_minbucket=1,
+                        death_minbucket=0,
                         minbucket=1,
                         max_depth=max_depth,
                     )
@@ -157,7 +157,7 @@ open(DIRECTORY * "/output/settings.txt") do f
                 end
 
                 # Try again with a different seed
-                println("\033[31;1mAn error occurred, retrying!\033[0m")
+                println("\033[31;1mAn error occurred, retrying with a different seed\033[0m")
                 random_seed += 1
             end
 
