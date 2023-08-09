@@ -8,7 +8,6 @@ library("mlr3proba")
 library("mlr3extralearners")
 library("mlr3tuning")
 
-
 directory <- getwd()
 dataset_type = "numeric"
 TIME_OUT_IN_SECONDS <- 600
@@ -83,35 +82,26 @@ serialize_tree_with_features <- function(lines, root_idx, feature_meanings) {
   return(paste("[", feature, ",", left_child, ",", right_child, "]", sep = ""))
 }
 
-id <- 0
-
-result <- "id;settings;time;results"
-
-settings_lines <- read_lines(settings_file)
-for (settings_line in settings_lines) {
-  # Read settings
-  settings <- fromJSON(settings_line)
-  name <- settings["file"]
-  core_name <- settings["core-file"]
-  max_depth <- settings["max-depth"][[1]]
+run_ctree <- function(settings) {
+  name <- settings[["file"]]
+  core_name <- settings[["core-file"]]
+  max_depth <- settings[["max-depth"]]
 
   train_filename <- paste(dataset_type, settings["file"], sep = "/")
 
   # Read train data
   file_path <- paste(directory, "/datasets/", train_filename, ".txt", sep = "")
   sdata <- read.csv(file_path, stringsAsFactors = FALSE)
-  
   # Fit and capture tree
   set.seed(1)
 
   surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
-
   surv.lrn = lrn("surv.ctree",
     maxdepth  = max_depth,
     mincriterion = to_tune(c(0.9, 0.925, 0.95, 0.97, 0.98, 0.99, 0.995, 0.999))
   )
 
-    instance = ti(
+  instance = ti(
     task = surv.task,
     learner = surv.lrn,
     resampling = rsmp("cv", folds = 5),
@@ -135,7 +125,6 @@ for (settings_line in settings_lines) {
   tree_lines <- tree_lines[(idx + 1):(length(tree_lines) - 3)]
 
   # Read feature meanings
-  partition_idx <- regexpr("_partition_.*$", name)[1]
   feature_meanings_file_path <- paste(directory, "/datasets/feature_meanings/", core_name, ".txt", sep = "")
   feature_meanings_lines <- read_lines(feature_meanings_file_path)
 
@@ -149,26 +138,40 @@ for (settings_line in settings_lines) {
   }
   tree_string <- serialize_tree_with_features(tree_lines, 1, feature_meanings)
 
-  # Append results
-  result_line <- paste("\n",
-    paste(id, settings_line, end_time - start_time, tree_string, sep = ";"),
-    sep = ""
-  )
-  result <- paste(result, result_line)
-
   print(tree)
   print(train_filename)
-  print(paste("Time:", end_time - start_time, "seconds"))
+  print(paste("Time:", duration))
+
+  return(list(duration, tree_string))
+}
+
+id <- 0
+output_lines <- "id;settings;time;results"
+
+settings_lines <- read_lines(settings_file)
+for (settings_line in settings_lines) {
+  # Read settings
+  settings <- fromJSON(settings_line)
+  result <- run_ctree(settings)
+  duration <- result[[1]]
+  tree_string <- result[[2]]
+
+  # Append results
+  output_line <- paste("\n",
+    paste(id, settings_line, duration, tree_string, sep = ";"),
+    sep = ""
+  )
+  output_lines <- paste(output_lines, output_line)
 
   id <- id + 1
 }
 
 # Write trees to file
 sink(paste(directory, "/output/ctree_trees.csv", sep = ""))
-cat(result)
+cat(output_lines)
 sink()
 
 total_end_time <- Sys.time()
-  print(paste("Total time:", total_end_time - total_start_time, "seconds"))
+print(paste("Total time:", total_end_time - total_start_time))
 
 print("Done!")
