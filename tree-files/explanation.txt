@@ -1,0 +1,2 @@
+depth4_hyper_untimed
+These experiments were run with a maximum depth of 4. Hypertuning was done in each algorithm. The runtimes are not perfectly reliable, as some of the algorithms were run in parallel.
