@@ -96,6 +96,11 @@ run_ctree <- function(settings) {
   set.seed(1)
 
   surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
+<<<<<<< HEAD
+=======
+  surv.task$col_roles$stratum = "event"
+
+>>>>>>> f12ee9c (stratify ctree, plot synthetic results)
   surv.lrn = lrn("surv.ctree",
     maxdepth  = max_depth,
     mincriterion = to_tune(c(0.9, 0.925, 0.95, 0.97, 0.98, 0.99, 0.995, 0.999))

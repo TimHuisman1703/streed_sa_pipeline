@@ -217,7 +217,6 @@ def main():
             file.write("\n")
 
             curr_instances = instances[:n]
-            np.random.shuffle(curr_instances)
             for inst in curr_instances:
                 file.write(",".join(str(j) for j in inst))
                 file.write("\n")

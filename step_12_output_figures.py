@@ -2,11 +2,12 @@ import pandas as pd
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FormatStrFormatter
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
-if not os.path.exists(f"{DIRECTORY}/tables"):
-    os.mkdir(f"{DIRECTORY}/tables")
+if not os.path.exists(f"{DIRECTORY}/plots"):
+    os.mkdir(f"{DIRECTORY}/plots")
 
 def main():
 
@@ -23,7 +24,8 @@ def main():
     sns.set_palette("colorblind")
 
     data = []
-    algorithms = ["streed", "ost"]
+    algorithms = ["streed", "ost", "ctree"]
+    algorithm_name = {"ost": "OST", "streed": "SurTree", "ctree": "CTree"}
     for algorithm in algorithms:
         with open(f"{DIRECTORY}/output/{algorithm}_output.csv") as f:
             lines = f.read().strip().split("\n")
@@ -32,7 +34,7 @@ def main():
                 results = {key: _results[key] for key in ["runtime", "num_nodes", "integrated_brier_score_ratio"]}
                 results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "mode", "cost-complexity"]})
                 results["dataset"] = "_".join(settings["file"].replace("train/","").split("_")[:-2])
-                results["method"] = algorithm
+                results["method"] = algorithm_name[algorithm]
                 results.update({"train_"+key: _results["train"][key] for key in ["objective_score", "concordance_score"]})
                 results.update({"test_"+key: _results["test"][key] for key in ["objective_score", "concordance_score"]})
                 data.append(results)
@@ -62,26 +64,46 @@ def main():
             censoring_category = "High"
         df.loc[df["dataset"] == dataset, "censoring_category"] = censoring_category
 
-    print(df.head(5))
-
-    #fig, ((hc1, hc2, hc3), (ib1, ib2, ib3)) = plt.subplots(2,3)
-
-    
+       
     df2 = df.melt(id_vars=["dataset", "method", "censoring_category", "n_instances"], value_vars=["test_concordance_score", "integrated_brier_score_ratio"])
-    print(df2.head(5))
+    
+    HEIGHT = 1.5 # per-subplot height
+    WIDTH = 7.0 # final width should be less than 6.95 inch
+    N_COLS = 3
+    N_ROWS = 2
 
-    #sns.lineplot(data=df[df["censoring_category"] == "Moderate"], x="n_instances", y="test_concordance_score", hue='method')
-    rel = sns.relplot(data=df2, x="n_instances", y="value", hue='method', col='censoring_category', row='variable', kind='line',
-                      height=2.0, aspect = (6.6 / (3 *2.0)))
+    rel = sns.relplot(data=df2, x="n_instances", y="value", 
+                      hue='method', style='method', hue_order=["CTree", "OST", "SurTree"], style_order=["CTree", "OST", "SurTree"],
+                      col='censoring_category', col_order=["Low", "Moderate", "High"],
+                      row='variable', row_order=['test_concordance_score', 'integrated_brier_score_ratio'],
+                      kind='line',
+                      height=HEIGHT, aspect = (WIDTH / (N_COLS *HEIGHT)),
+                      facet_kws={"sharey":'row'})
+    
+
+    for (score, censoring_category), ax in rel.axes_dict.items():
+        if score == "integrated_brier_score_ratio":
+            ax.set_title("")
+            ax.set_ylim(bottom = 0)
+            if censoring_category == "Low":
+                ax.set_ylabel("Integrated Brier Score")
+            ax.set_xlabel("Number of instances")
+        elif score == 'test_concordance_score':
+            ax.set_title(f"Censoring: {censoring_category}")
+            ax.set_ylim(bottom = 0.5)
+            if censoring_category == 'Low':
+                ax.set_ylabel("Harrell's C-index")
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))    
+    
+    sns.move_legend(rel, "upper left", bbox_to_anchor=(0.1, 0.91), ncol=1, title="", frameon=True)
+
     plt.xscale('log')
-    plt.ylim(0, 1)
-    plt.xlim(100, 10000)
-
-    plt.show()
-
-    #sns.relplot(data=df, x="n_instances", y="integrated_brier_score_ratio", hue='method', col='censoring_category', kind='line')
+    plt.xlim(100, 5000)
+    plt.subplots_adjust(wspace=0.1, hspace=0.15)
 
     #plt.show()
+    plt.savefig(f"{DIRECTORY}/plots/synthetic_inc_n.pdf", bbox_inches="tight", pad_inches = 0)
 
+    
 if __name__ == "__main__":
     main()
