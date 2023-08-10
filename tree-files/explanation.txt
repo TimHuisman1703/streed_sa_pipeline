@@ -1,2 +1,7 @@
-depth4_hyper_untimed
-These experiments were run with a maximum depth of 4. Hypertuning was done in each algorithm. The runtimes are not perfectly reliable, as some of the algorithms were run in parallel.
+depth[d]_[mode]_[is_timed]_[datasets]
+
+Arguments:
+d           = The maximum depth the experiments were run with
+mode        = "direct" if no hypertuning was done, "hyper" if it was
+is_timed    = "timed" if the time is reliable and matters, "untimed" if not
+datasets    = "real" if the real datasets were used, "synthetic" if the synthetically generated datasets were used
