@@ -86,6 +86,7 @@ run_ctree <- function(settings) {
   name <- settings[["file"]]
   core_name <- settings[["core-file"]]
   max_depth <- settings[["max-depth"]]
+  hypertuning <- settings[["mode"]] == "hyper"
 
   train_filename <- paste(dataset_type, settings["file"], sep = "/")
 
@@ -95,31 +96,46 @@ run_ctree <- function(settings) {
   # Fit and capture tree
   set.seed(1)
 
-  surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
-  surv.task$col_roles$stratum = "event"
+  duration = NULL
+  tree = NULL
+  if (hypertuning) {
+    surv.task = TaskSurv$new(id=train_filename, backend=sdata, time='time', event='event')
+    surv.task$col_roles$stratum = "event"
 
-  surv.lrn = lrn("surv.ctree",
-    maxdepth  = max_depth,
-    mincriterion = to_tune(c(0.9, 0.925, 0.95, 0.97, 0.98, 0.99, 0.995, 0.999))
-  )
+    surv.lrn = lrn("surv.ctree",
+      maxdepth  = max_depth,
+      mincriterion = to_tune(c(0.9, 0.925, 0.95, 0.97, 0.98, 0.99, 0.995, 0.999))
+    )
 
-  instance = ti(
-    task = surv.task,
-    learner = surv.lrn,
-    resampling = rsmp("cv", folds = 5),
-    measures = msr("surv.cindex"),
-    terminator = trm("run_time", secs=TIME_OUT_IN_SECONDS)
-  )
-  tuner = tnr("grid_search", resolution = 1)
+    instance = ti(
+      task = surv.task,
+      learner = surv.lrn,
+      resampling = rsmp("cv", folds = 5),
+      measures = msr("surv.cindex"),
+      terminator = trm("run_time", secs=TIME_OUT_IN_SECONDS)
+    )
+    tuner = tnr("grid_search", resolution = 1)
 
-  start_time <- Sys.time()
-  tuner$optimize(instance)
-  end_time <- Sys.time()
-  duration = end_time - start_time
+    start_time <- Sys.time()
+    tuner$optimize(instance)
+    end_time <- Sys.time()
+    duration = end_time - start_time
 
-  surv.lrn$param_set$values = instance$result_learner_param_vals
-  surv.lrn$train(surv.task)
-  tree <- surv.lrn$model
+    surv.lrn$param_set$values = instance$result_learner_param_vals
+    surv.lrn$train(surv.task)
+    tree <- surv.lrn$model
+  } else {
+    start_time <- Sys.time()
+    tree <- ctree(
+      Surv(time, event) ~ .,
+      data = sdata,
+      control = ctree_control(
+        maxdepth = max_depth
+      )
+    )
+    end_time <- Sys.time()
+    duration = end_time - start_time
+  }
 
   tree_lines <- capture.output(print(tree))
 
