@@ -184,12 +184,12 @@ def main():
     # The settings to generate with
     
     MAX_N = 5000
-    ns = [100, 200, 500, 1000, 2000, 5000]
+    ns = [5000]
     
     SETTINGS = [
         (f, c, i)
             for f in [1]
-            for c in [10, 50, 80]
+            for c in [50]
             for i in range(5)
     ]
 
