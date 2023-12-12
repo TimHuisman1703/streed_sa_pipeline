@@ -1,9 +1,3 @@
-#= CONVENIENT CMD ARGUMENTS TO RUN ALGORITHM FROM THE CONSOLE
-julia
-include("C:/Users/timhu/Documents/TUDelft/Courses/RP/streed_sa_pipeline/step_7_run_ost.jl")
-
-=#
-
 println("\033[30;1mStarted\033[0m")
 total_start_time = time()
 
@@ -211,7 +205,7 @@ open(DIRECTORY * "/output/settings.txt") do f
         max_depth = get!(settings, "max-depth", 3)
         max_num_nodes = get!(settings, "max-num-nodes", 7)
         cost_complexity = get!(settings, "cost-complexity", 0)
-        hypertuning = get!(settings, "mode", "direct") == "hyper"
+        hypertuning = get!(settings, "hyper-tune", "1") == "1"
     end
 end
 

@@ -86,7 +86,7 @@ run_ctree <- function(settings) {
   name <- settings[["file"]]
   core_name <- settings[["core-file"]]
   max_depth <- settings[["max-depth"]]
-  hypertuning <- settings[["mode"]] == "hyper"
+  hypertuning <- settings[["hyper-tune"]] == "1"
 
   train_filename <- paste(dataset_type, settings["file"], sep = "/")
 

@@ -30,7 +30,7 @@ def nelson_aalen(instances):
             ts[t] = [0, 0]
         ts[t][d] += 1
 
-    d = {0: 1 / (len(instances) + 1)}
+    d = {0: 0}
     at_risk = len(instances)
     sum = 0
     for t in sorted(ts.keys()):

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from scipy.stats import wilcoxon
+from scipy.stats import wilcoxon, ttest_ind
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
@@ -21,6 +21,15 @@ TRAIN_TEST_SCORE_TYPES = [
 def format_p(p):
     if p < 0.05: return p, f"\033[35;1mp = {p}\033[0m"
     return p, f"p = {p}"
+
+WILCOXON = True
+
+def stat_test(vals1, vals2):
+    if WILCOXON:
+        diffs = [vals1[i] - vals2[i] for i in range(len(vals1))]
+        return wilcoxon(diffs)[1]
+    else:
+        return ttest_ind(vals1, vals2, equal_var=False)[1]
 
 # Makes plots for each of the algorithms by sorting a list of outcomes and laying it out over a [0, 1]-range
 #
@@ -88,11 +97,20 @@ def compare_algs(data, alg1, alg2):
     # Compare num nodes
     counts = [0, 0, 0]
     diffs = []
+    vals1 = []
+    vals2 = []
     for line1, line2 in zip(alg1_data, alg2_data):
-        diff = line1["results"]["num_nodes"] - line2["results"]["num_nodes"]
+        val1 = line1["results"]["num_nodes"]
+        val2 = line2["results"]["num_nodes"]
+        diff = val1 - val2
         counts[1 + sign(diff)] += 1
         diffs.append(diff)
-    p, p_str = format_p(wilcoxon(diffs)[1])
+        vals1.append(val1)
+        vals2.append(val2)
+    if all([d == 0 for d in diffs]):
+        p, p_str = format_p(0.5)
+    else:
+        p, p_str = format_p(stat_test(vals1, vals2))
     print("\033[37;1mNum nodes\033[0m")
     print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
     print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
@@ -103,11 +121,17 @@ def compare_algs(data, alg1, alg2):
     # Compare IBS ratio
     counts = [0, 0, 0]
     diffs = []
+    vals1 = []
+    vals2 = []
     for line1, line2 in zip(alg1_data, alg2_data):
-        diff = line1["results"]["integrated_brier_score_ratio"] - line2["results"]["integrated_brier_score_ratio"]
+        val1 = line1["results"]["integrated_brier_score_ratio"]
+        val2 = line2["results"]["integrated_brier_score_ratio"]
+        diff = val1 - val2
         counts[1 + sign(diff)] += 1
         diffs.append(diff)
-    p, p_str = format_p(wilcoxon(diffs)[1])
+        vals1.append(val1)
+        vals2.append(val2)
+    p, p_str = format_p(stat_test(vals1, vals2))
     print("\033[37;1mIBS Ratio\033[0m")
     print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
     print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
@@ -121,16 +145,22 @@ def compare_algs(data, alg1, alg2):
         for type in ["train", "test"]:
             counts = [0, 0, 0]
             diffs = []
+            vals1 = []
+            vals2 = []
             for line1, line2 in zip(alg1_data, alg2_data):
-                diff = line1["results"][f"{type}"][attr] - line2["results"][f"{type}"][attr]
+                val1 = line1["results"][f"{type}"][attr]
+                val2 = line2["results"][f"{type}"][attr]
+                diff = val1  - val2
                 counts[1 + sign(diff)] += 1
                 diffs.append(diff)
+                vals1.append(val1)
+                vals2.append(val2)
 
                 if type == "test" and diff < max_diff:
                     max_diff = diff
                     print("worst: ", max_diff, line1["settings"]['file'])
 
-            p, p_str = format_p(wilcoxon(diffs)[1])
+            p, p_str = format_p(stat_test(vals1, vals2))
             print(f"\033[37;1m{name} ({type})\033[0m")
             print(f"\033[31m  {alg1} < {alg2}:    {counts[0]}\033[0m")
             print(f"\033[33m  {alg1} = {alg2}:    {counts[1]}\033[0m")
@@ -150,8 +180,6 @@ def main():
         for line in lines[1:]:
             _, settings, results = [eval(j) for j in line.split(";")]
 
-            with open(f"{DIRECTORY}/datasets/binary/{settings['file']}.txt") as f2:
-                if len(f2.readlines()) < 200: continue
 
             alg_data.append({
                 "settings": settings,

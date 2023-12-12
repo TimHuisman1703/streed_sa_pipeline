@@ -6,8 +6,9 @@ import time
 from utils import get_feature_meanings
 from utils import DIRECTORY
 
-EXEC_PATH = f"{DIRECTORY}/streed2/out/build/x64-Release/STREED.exe"
-STREED_DIRECTORY = f"{DIRECTORY}/streed2/data/survival-analysis"
+# Replace paths if necessary!
+EXEC_PATH = "../out/build/x64-Release/STREED.exe"
+DATA_DIRECTORY = f"../data/survival-analysis"
 
 TIME_OUT_IN_SECONDS = 600
 PARETO_PRUNING = True
@@ -86,6 +87,7 @@ def run_streed(parameters):
         "-use-lower-bound", "1",
         "-use-dataset-caching", "1",
         "-use-branch-caching", "0",
+        "-use-terminal-solver", "1"
     ])
 
     # Print executable call for convenience
@@ -137,9 +139,9 @@ def main():
     total_start_time = time.time()
 
     # Clear STreeD-datasets, these will be replaced anyway
-    shutil.rmtree(STREED_DIRECTORY)
+    shutil.rmtree(DATA_DIRECTORY)
     for section in ["", "/train", "/test"]:
-        os.mkdir(f"{STREED_DIRECTORY}{section}")
+        os.mkdir(f"{DATA_DIRECTORY}{section}")
 
     # Read settings
     params_settings = parse_settings(f"{DIRECTORY}/output/settings.txt")
@@ -152,10 +154,10 @@ def main():
             # Change files to new STreeD files
             train_filename = params["file"]
             train_path = f"{dataset_directory}/{train_filename}.txt"
-            params["file"] = train_path.replace(dataset_directory, STREED_DIRECTORY)
+            params["file"] = train_path.replace(dataset_directory, DATA_DIRECTORY)
             test_filename = params["test-file"]
             test_path = f"{dataset_directory}/{test_filename}.txt"
-            params["test-file"] = test_path.replace(dataset_directory, STREED_DIRECTORY)
+            params["test-file"] = test_path.replace(dataset_directory, DATA_DIRECTORY)
 
             # Write STreeD files
             feature_names = make_streed_compatible(train_path, params["file"])

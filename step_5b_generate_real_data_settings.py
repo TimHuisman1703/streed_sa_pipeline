@@ -81,13 +81,13 @@ def parse_settings(filename):
 def main():
     PARAM_OPTIONS = {
         "file": [
-            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY)
+            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if not j.startswith("generated_dataset")
         ],
-        "max-depth": [4],
+        "max-depth": [3],
         "max-num-nodes": ["max"],
         "cost-complexity": [0],
-        "mode": ["hyper"],
-        "split": [True],
+        "hyper-tune": ["1"],
+        "split": [False],
     }
 
     # Create directory for settings files
