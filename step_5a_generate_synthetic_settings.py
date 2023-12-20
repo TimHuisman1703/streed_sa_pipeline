@@ -30,7 +30,9 @@ def prepare_parameters(parameters):
 
     # Default test file to train file
     if "test-file" not in parameters:
-        parameters["test-file"] = parameters["file"]
+        sp = parameters["file"].split("_")
+        sp[2] = "50000"
+        parameters["test-file"] = "_".join(sp)
 
     # Default max depth to 3
     if "max-depth" not in parameters:
@@ -67,21 +69,10 @@ def prepare_parameters(parameters):
 
     return [parameters]
 
-# Reads the settings from a filename and returns them as maps
-# The file must be formatted with one JSON object on each individual line
-#
-# filename      The path to the settings file
-def parse_settings(filename):
-    f = open(filename)
-    settings = [eval(j) for j in f.read().strip().split("\n")]
-    f.close()
-
-    return settings
-
 def main():
     PARAM_OPTIONS = {
         "file": [
-            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if j.startswith("generated_dataset")
+            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if j.startswith("generated_dataset") and not j.startswith("generated_dataset_50000")
         ],
         "max-depth": [4],
         "max-num-nodes": ["max"],

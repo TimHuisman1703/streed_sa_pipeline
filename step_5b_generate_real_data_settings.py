@@ -67,27 +67,22 @@ def prepare_parameters(parameters):
 
     return [parameters]
 
-# Reads the settings from a filename and returns them as maps
-# The file must be formatted with one JSON object on each individual line
-#
-# filename      The path to the settings file
-def parse_settings(filename):
-    f = open(filename)
-    settings = [eval(j) for j in f.read().strip().split("\n")]
-    f.close()
-
-    return settings
-
 def main():
+    files = []
+    for file in files_in_directory(ORIGINAL_DIRECTORY):
+        if file.startswith("generated_dataset"): continue
+        with open(os.path.join(ORIGINAL_DIRECTORY, file), "r") as f:
+            if len(f.readlines()) >= 2000: files.append(file)
+    
     PARAM_OPTIONS = {
         "file": [
-            f"{j[:-4]}" for j in files_in_directory(ORIGINAL_DIRECTORY) if not j.startswith("generated_dataset")
+            f"{j[:-4]}" for j in files
         ],
         "max-depth": [3],
         "max-num-nodes": ["max"],
         "cost-complexity": [0],
         "hyper-tune": ["1"],
-        "split": [False],
+        "split": [True],
     }
 
     # Create directory for settings files

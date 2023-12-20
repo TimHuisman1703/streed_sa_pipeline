@@ -100,6 +100,7 @@ def compare_algs(data, alg1, alg2):
     vals1 = []
     vals2 = []
     for line1, line2 in zip(alg1_data, alg2_data):
+        if line1["results"]["runtime"] >= 600 or line2["results"]["runtime"] >= 600: continue
         val1 = line1["results"]["num_nodes"]
         val2 = line2["results"]["num_nodes"]
         diff = val1 - val2
@@ -124,6 +125,8 @@ def compare_algs(data, alg1, alg2):
     vals1 = []
     vals2 = []
     for line1, line2 in zip(alg1_data, alg2_data):
+        if line1["results"]["runtime"] >= 600 or line2["results"]["runtime"] >= 600: continue
+        
         val1 = line1["results"]["integrated_brier_score_ratio"]
         val2 = line2["results"]["integrated_brier_score_ratio"]
         diff = val1 - val2
@@ -148,6 +151,8 @@ def compare_algs(data, alg1, alg2):
             vals1 = []
             vals2 = []
             for line1, line2 in zip(alg1_data, alg2_data):
+                if line1["results"]["runtime"] >= 600 or line2["results"]["runtime"] >= 600: continue
+                
                 val1 = line1["results"][f"{type}"][attr]
                 val2 = line2["results"][f"{type}"][attr]
                 diff = val1  - val2

@@ -10,6 +10,7 @@ library("mlr3tuning")
 
 directory <- getwd()
 dataset_type = "numeric"
+#dataset_type = "binary"
 TIME_OUT_IN_SECONDS <- 600
 
 settings_file <- paste(directory, "/output/settings.txt", sep = "")
@@ -110,20 +111,24 @@ run_ctree <- function(settings) {
     instance = ti(
       task = surv.task,
       learner = surv.lrn,
-      resampling = rsmp("cv", folds = 5),
+      resampling = rsmp("cv", folds = 10),
       measures = msr("surv.cindex"),
       terminator = trm("run_time", secs=TIME_OUT_IN_SECONDS)
     )
-    tuner = tnr("grid_search", resolution = 1)
+    tuner = tnr("grid_search", resolution = 8)
 
     start_time <- Sys.time()
+    print("Tune model")
     tuner$optimize(instance)
-    end_time <- Sys.time()
-    duration = end_time - start_time
 
+    print("Train tuned model")
     surv.lrn$param_set$values = instance$result_learner_param_vals
     surv.lrn$train(surv.task)
     tree <- surv.lrn$model
+
+    end_time <- Sys.time()
+    duration = difftime(end_time, start_time, units="secs")
+    print(paste("Time:", duration))
   } else {
     start_time <- Sys.time()
     tree <- ctree(
@@ -134,7 +139,7 @@ run_ctree <- function(settings) {
       )
     )
     end_time <- Sys.time()
-    duration = end_time - start_time
+    duration = difftime(end_time, start_time, units="secs")
   }
 
   tree_lines <- capture.output(print(tree))
@@ -159,7 +164,6 @@ run_ctree <- function(settings) {
 
   print(tree)
   print(train_filename)
-  print(paste("Time:", duration))
 
   return(list(duration, tree_string))
 }

@@ -18,7 +18,7 @@ def main():
                 shutil.rmtree(path)
             os.mkdir(path)
 
-    for filename in [j[:-4] for j in files_in_directory(ORIGINAL_DIRECTORY)]:
+    for filename in [j[:-4] for j in files_in_directory(ORIGINAL_DIRECTORY) if not j.startswith("generated")]:
         # Read instances from file
         f = open(f"{ORIGINAL_DIRECTORY}/{filename}.txt")
         lines = f.read().strip().split("\n")

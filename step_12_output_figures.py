@@ -31,9 +31,10 @@ def main():
             lines = f.read().strip().split("\n")
             for line in lines[1:]:
                 _, settings, _results = [eval(j) for j in line.split(";")]
+                if float(_results["runtime"]) < -1e-3 or float(_results["runtime"]) >= 600: continue
                 results = {key: _results[key] for key in ["runtime", "num_nodes", "integrated_brier_score_ratio"]}
-                results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "mode", "cost-complexity"]})
-                results["dataset"] = "_".join(settings["file"].replace("train/","").split("_")[:-2])
+                results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "hyper-tune", "cost-complexity"]})
+                results["dataset"] = "_".join(settings["file"].replace("train/","").split("_"))
                 results["method"] = algorithm_name[algorithm]
                 results.update({"train_"+key: _results["train"][key] for key in ["objective_score", "concordance_score"]})
                 results.update({"test_"+key: _results["test"][key] for key in ["objective_score", "concordance_score"]})
@@ -73,7 +74,7 @@ def main():
     N_ROWS = 2
 
     rel = sns.relplot(data=df2, x="n_instances", y="value", 
-                      hue='method', style='method', hue_order=["CTree", "OST", "SurTree"], style_order=["CTree", "OST", "SurTree"],
+                      hue='method', style='method', hue_order=["SurTree", "OST", "CTree"], style_order=["SurTree", "OST", "CTree"],
                       col='censoring_category', col_order=["Low", "Moderate", "High"],
                       row='variable', row_order=['test_concordance_score', 'integrated_brier_score_ratio'],
                       kind='line',

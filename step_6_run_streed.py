@@ -1,10 +1,8 @@
 import os
 import shutil
-from step_5_generate_settings import parse_settings
 from subprocess import Popen, PIPE
 import time
-from utils import get_feature_meanings
-from utils import DIRECTORY
+from utils import get_feature_meanings, parse_settings, DIRECTORY
 
 # Replace paths if necessary!
 EXEC_PATH = "../out/build/x64-Release/STREED.exe"
@@ -74,7 +72,7 @@ def run_streed(parameters):
     # Convert parameters to arguments
     args = []
     for key, value in parameters.items():
-        if key == "core-file":
+        if key == "core-file" or key == 'test-file':
             continue
         args.append(f"-{key}")
         args.append(f"{value}")
@@ -161,7 +159,6 @@ def main():
 
             # Write STreeD files
             feature_names = make_streed_compatible(train_path, params["file"])
-            make_streed_compatible(test_path, params["test-file"])
 
             # Run STreeD
             time_duration, tree = run_streed(params)

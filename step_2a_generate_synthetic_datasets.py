@@ -183,8 +183,8 @@ def generate_dataset(n, f, c):
 def main():
     # The settings to generate with
     
-    MAX_N = 5000
-    ns = [100, 200, 500, 1000, 2000, 5000]
+    MAX_N = 55000
+    ns = [100, 200, 500, 1000, 2000, 5000, 50000]
     
     SETTINGS = [
         (f, c, i)
@@ -216,7 +216,10 @@ def main():
             file.write("time,event," + ",".join(f"F{j}" for j in range(len(instances[0]) - 2)))
             file.write("\n")
 
-            curr_instances = instances[:n]
+            if n <= 5000: # For the training instances, take the n first ones
+                curr_instances = instances[:n]
+            else: # for the test set take the n last instances
+                curr_instances = instances[-n:]
             for inst in curr_instances:
                 file.write(",".join(str(j) for j in inst))
                 file.write("\n")

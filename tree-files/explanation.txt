@@ -3,5 +3,5 @@ depth[d]_[mode]_[is_timed]_[datasets]
 Arguments:
 d           = The maximum depth the experiments were run with, or 'inc' for increasing depth
 mode        = "direct" if no hypertuning was done, "hyper" if it was
-is_timed    = "timed" if the time is reliable and matters, "untimed" if not
+is_timed    = "timed" if the time is reliable
 datasets    = "real" if the real datasets were used, "synthetic" if the synthetically generated datasets were used

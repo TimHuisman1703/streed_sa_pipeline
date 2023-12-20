@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from contextlib import redirect_stdout
+from scipy.stats import gmean
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
@@ -17,7 +18,7 @@ def main():
             for line in lines[1:]:
                 _, settings, _results = [eval(j) for j in line.split(";")]
                 results = {key: _results[key] for key in ["runtime", "num_nodes", "integrated_brier_score_ratio"]}
-                results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "mode", "cost-complexity"]})
+                results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "hyper-tune", "cost-complexity"]})
                 results["dataset"] = settings["file"].replace("train/","").split("_")[0]
                 results["method"] = algorithm
                 results.update({"train_"+key: _results["train"][key] for key in ["objective_score", "concordance_score"]})
@@ -39,12 +40,17 @@ def main():
             n_features = len(lines[0].split(",")) - 2
         dataset_info[dataset] = {"n_instances": n_instances, "n_features": n_features, "n_binary_features": n_binary_features, "censoring": censoring}
 
+
+    timeouts = df["runtime"] >= 600
+    df.loc[timeouts, "test_concordance_score"] = 0.5
+    df.loc[timeouts, "integrated_brier_score_ratio"] = 0.0
+
     means_ibs = df.groupby(["dataset", "method"]).mean()["integrated_brier_score_ratio"].unstack("method")
-    rank_ibs = means_ibs.round(3).rank(axis=1, ascending=False).mean(axis=0)
+    rank_ibs = means_ibs.round(2).rank(axis=1, ascending=False).mean(axis=0)
     best_ibs = means_ibs.max(axis=1)
     means_hc = df.groupby(["dataset", "method"]).mean()["test_concordance_score"].unstack("method")
     best_hc = means_hc.max(axis=1)
-    rank_hc = means_hc.round(3).rank(axis=1, ascending=False).mean(axis=0)
+    rank_hc = means_hc.round(2).rank(axis=1, ascending=False).mean(axis=0)
     means_runtime = df.groupby(["dataset", "method"]).mean()["runtime"].unstack("method")
 
     print(means_runtime)
@@ -116,7 +122,10 @@ def main():
                 print(f"{rank_str} {sep} % {algorithm} # IBS rank")
             
                     
-                
+    gr = df.groupby(["dataset", "method"])["runtime"].mean().unstack("method")
+
+    print("Times faster, OST vs SurTree: ", gmean((gr["ost"] / gr["streed"])))
+
 
 
 if __name__ == "__main__":

@@ -1,0 +1,135 @@
+Aids2 &
+2839 & 38.0\% & 4 & 22 &
+\textbf{0.53} & % HC ctree
+\textbf{0.53} & % HC ost
+\textbf{0.53} & % HC streed
+\textbf{0.01} & % IBS ctree
+\textbf{0.01} & % IBS ost
+0.00 \\ % IBS streed
+Dialysis &
+6805 & 76.4\% & 4 & 35 &
+0.64 & % HC ctree
+\textbf{0.67} & % HC ost
+0.65 & % HC streed
+0.07 & % IBS ctree
+\textbf{0.12} & % IBS ost
+0.08 \\ % IBS streed
+Framingham &
+4658 & 68.5\% & 7 & 60 &
+\textbf{0.68} & % HC ctree
+0.67 & % HC ost
+0.67 & % HC streed
+\textbf{0.11} & % IBS ctree
+0.09 & % IBS ost
+0.10 \\ % IBS streed
+Unempdur &
+3241 & 38.7\% & 6 & 45 &
+0.69 & % HC ctree
+0.69 & % HC ost
+\textbf{0.70} & % HC streed
+\textbf{0.11} & % IBS ctree
+\textbf{0.11} & % IBS ost
+\textbf{0.11} \\ % IBS streed
+Acath &
+2258 & 34.0\% & 3 & 21 &
+\textbf{0.59} & % HC ctree
+\textbf{0.59} & % HC ost
+\textbf{0.59} & % HC streed
+0.02 & % IBS ctree
+0.02 & % IBS ost
+\textbf{0.03} \\ % IBS streed
+Csl &
+2481 & 89.1\% & 6 & 42 &
+\textbf{0.78} & % HC ctree
+0.76 & % HC ost
+0.76 & % HC streed
+0.10 & % IBS ctree
+0.10 & % IBS ost
+\textbf{0.11} \\ % IBS streed
+Datadivat1 &
+5943 & 83.6\% & 5 & 21 &
+0.63 & % HC ctree
+\textbf{0.64} & % HC ost
+0.63 & % HC streed
+\textbf{0.08} & % IBS ctree
+0.05 & % IBS ost
+\textbf{0.08} \\ % IBS streed
+Datadivat3 &
+4267 & 94.4\% & 7 & 30 &
+\textbf{0.66} & % HC ctree
+0.64 & % HC ost
+0.65 & % HC streed
+0.02 & % IBS ctree
+\textbf{0.03} & % IBS ost
+\textbf{0.03} \\ % IBS streed
+Divorce &
+3371 & 69.4\% & 3 & 5 &
+0.52 & % HC ctree
+\textbf{0.53} & % HC ost
+\textbf{0.53} & % HC streed
+0.01 & % IBS ctree
+\textbf{0.02} & % IBS ost
+\textbf{0.02} \\ % IBS streed
+Flchain &
+6524 & 69.9\% & 10 & 60 &
+\textbf{0.92} & % HC ctree
+\textbf{0.92} & % HC ost
+\textbf{0.92} & % HC streed
+\textbf{0.66} & % IBS ctree
+\textbf{0.66} & % IBS ost
+\textbf{0.66} \\ % IBS streed
+Hdfail &
+52422 & 94.5\% & 6 & 27 &
+-  & % Timeout ctree, HC 0.50
+-  & % Timeout ost, HC 0.50
+\textbf{0.84} & % HC streed
+-  & % Timeout ctree, IBS 0.00
+-  & % Timeout ost, IBS 0.00
+\textbf{0.44} \\ % IBS streed
+Nwtco &
+4028 & 85.8\% & 7 & 17 &
+0.70 & % HC ctree
+\textbf{0.71} & % HC ost
+0.70 & % HC streed
+\textbf{0.14} & % IBS ctree
+\textbf{0.14} & % IBS ost
+0.13 \\ % IBS streed
+Oldmort &
+6495 & 69.7\% & 7 & 33 &
+\textbf{0.64} & % HC ctree
+-  & % Timeout ost, HC 0.53
+\textbf{0.64} & % HC streed
+\textbf{0.06} & % IBS ctree
+-  & % Timeout ost, IBS 0.01
+\textbf{0.06} \\ % IBS streed
+Prostatesurvival &
+14294 & 94.4\% & 3 & 8 &
+\textbf{0.76} & % HC ctree
+\textbf{0.76} & % HC ost
+\textbf{0.76} & % HC streed
+0.10 & % IBS ctree
+\textbf{0.11} & % IBS ost
+\textbf{0.11} \\ % IBS streed
+Rott2 &
+2982 & 57.3\% & 11 & 50 &
+0.68 & % HC ctree
+0.68 & % HC ost
+\textbf{0.69} & % HC streed
+0.12 & % IBS ctree
+\textbf{0.15} & % IBS ost
+\textbf{0.15} \\ % IBS streed
+\midrule
+Wins per metric & &&&&
+8 & % ctree # HC wins
+8 & % ost # HC wins
+\textbf{9} & % streed # HC wins
+7 & % ctree # IBS wins
+9 & % ost # IBS wins
+\textbf{11} \\ % streed # IBS wins
+Average rank & &&&&
+2.07 & % ctree # HC rank
+2.07 & % ost # HC rank
+\textbf{1.87} & % streed # HC rank
+2.23 & % ctree # IBS rank
+2.03 & % ost # IBS rank
+\textbf{1.73} \\ % streed # IBS rank

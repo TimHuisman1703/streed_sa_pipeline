@@ -103,7 +103,7 @@ def calculate_integrated_brier_score(root, train_instances, test_instances, meth
     return score
 
 def main():
-    for algorithm in ["ctree", "ost", "streed"]:
+    for algorithm in ["streed", "ctree", "ost"]:
         print(f"\n\033[33;1mEvaluating {algorithm.upper()}'s output...\033[0m")
         
         # Survival distribution method
@@ -111,6 +111,9 @@ def main():
 
         # Read trees
         f = open(f"{DIRECTORY}/output/{algorithm}_trees.csv")
+        #f = open(f"{DIRECTORY}/tree-files/{algorithm}_trees_depth4_hyper_synthetic.csv")
+        #f = open(f"{DIRECTORY}/tree-files/{algorithm}_trees_depth4_hyper_real.csv")
+        #f = open(f"{DIRECTORY}/tree-files/{algorithm}_trees_binary_score_comparison_synthetic.csv")
         lines = f.read().strip().split("\n")
         f.close()
 

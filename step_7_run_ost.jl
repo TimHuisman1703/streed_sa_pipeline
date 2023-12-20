@@ -3,6 +3,7 @@ total_start_time = time()
 
 DIRECTORY = dirname(Base.source_path())
 DATASET_TYPE = "original"
+#DATASET_TYPE = "binary"
 
 # Import modules (takes long)
 using CSV
@@ -120,6 +121,7 @@ open(DIRECTORY * "/output/settings.txt") do f
                             death_minbucket=0,
                         ),
                         max_depth=0:max_depth,
+                        n_folds=10,
                     )
                 else
                     object_to_fit = IAI.OptimalTreeSurvivalLearner(

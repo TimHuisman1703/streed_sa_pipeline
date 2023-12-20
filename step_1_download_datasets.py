@@ -39,8 +39,9 @@ def main():
             for i in range(len(column)):
                 column[i] = column[i].split("-")[0]
 
-        # Drop time2 column since it often correlates too much with time
+        # Drop time2
         if "time2" in df.columns:
+            df["time"] = df["time2"] - df["time"] # If time2 exists, time1 is the start time, so subtract and drop time2
             df.drop(columns=["time2"], inplace=True)
 
         # Write headers

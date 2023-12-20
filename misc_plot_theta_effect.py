@@ -1,44 +1,74 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from utils import Instance, nelson_aalen
 from utils import DIRECTORY
 
-def plot_with_theta(hazard_function, theta):
-    plt.clf()
-    _, ax = plt.subplots(
-        figsize=(2, 3),
-        dpi=300,
-        gridspec_kw=dict(left=0.15, right=0.99, bottom=0.04, top=0.91),
-        facecolor="#FFFFFF"
-    )
-    ax.set_ylim([0, 1.1])
-    ax.set_xlim([0, 19.9])
+def plot(df):
+    
+    sns.set_context('paper')
+    plt.rc('font', size=10, family='serif')
+    plt.rcParams['font.serif'] = ['Times New Roman']
+    plt.rc('xtick', labelsize='x-small')
+    plt.rc('ytick', labelsize='x-small')
+    plt.rc('axes', labelsize='small', grid=False)
+    plt.rc('legend', fontsize='x-small')
+    plt.rc('pdf',fonttype = 42)
+    plt.rc('ps',fonttype = 42)
+    plt.rc('text', usetex = True)
+    sns.set_palette("colorblind")
 
+    g = sns.relplot(data=df, x="x", y="y", col="theta", kind="line", legend=False,
+                    height=1.6, aspect = (3.3 + 0.40) / (1.6*3))
+    plt.ylim([0, 1.1])
+    plt.xlim([0, 19.9])
+
+    #plt.title(f"θ {'<=>'[int(theta)]} 1")
+    
+    for theta, ax in g.axes_dict.items():
+        if theta == 0.5:
+            ax.set_title("$\\theta < 1$")
+            ax.set_ylabel("Survival probability")
+        elif theta == 1.0:
+            ax.set_title("$\\theta = 1$")
+        else:
+            ax.set_title("$\\theta > 1$")
+        ax.set_ylim(0, 1.1)
+        ax.set_xlim(0, 20.0)
+        ax.set_xlabel("Time $\\rightarrow$")
+        
+
+    plt.ylabel("Survival rate")
+    plt.xlabel("Time $\\rightarrow$")
+    plt.yticks([0, 1], ["0", "1"])
+    plt.xticks([], [])
+    plt.subplots_adjust(wspace=0.1)
+    plt.savefig(f"{DIRECTORY}/plots/theta_example.pdf", bbox_inches="tight", pad_inches = 0)
+    #plt.close()
+    #plt.show()
+
+def shift_hazard_function(hazard_function, theta):
     xs = [0]
     ys = [1]
     prev_y = 1
-    for x in np.arange(0, 1000, 0.01):
+    for x in np.arange(0, 21, .001):
         curr_y = np.exp(-theta * hazard_function(x))
-
-        xs.extend([x - 1e-6, x])
-        ys.extend([prev_y, curr_y])
+        if curr_y != prev_y:
+            xs.extend([x, x + 1e-6])
+            ys.extend([prev_y, curr_y])
         prev_y = curr_y
-
-    plt.title(f"θ {'<=>'[int(theta)]} 1")
-    plt.plot(xs, ys, color="#DF1F1F", linewidth=2)
-
-    plt.ylabel("Survival rate", fontsize=14, labelpad=-10)
-    plt.yticks([0, 1], ["0", "1"])
-    plt.xticks([], [])
-    plt.savefig(f"{DIRECTORY}/output/theta_{theta:.1f}.svg", dpi=300)
-    plt.close()
+    return pd.concat([pd.Series(xs, name="x"), pd.Series(ys, name="y"), pd.Series([theta] * len(xs), name="theta")], axis=1)
 
 if __name__ == "__main__":
     instances = [Instance({"time": j, "event": 1}) for j in range(1, 21)]
     hazard_function = nelson_aalen(instances)
 
-    plot_with_theta(hazard_function, 0.5)
-    plot_with_theta(hazard_function, 1)
-    plot_with_theta(hazard_function, 2)
+    dfs = []
+    for theta in [0.5, 1, 2]:
+        dfs.append(shift_hazard_function(hazard_function, theta))
+    df = pd.concat(dfs)
+
+    plot(df)
 
     print("\033[32;1mDone!\033[0m")

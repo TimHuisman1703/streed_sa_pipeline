@@ -2,7 +2,9 @@ import pandas as pd
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.ticker import FormatStrFormatter
+from scipy.stats import gmean
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
@@ -24,17 +26,17 @@ def main():
     sns.set_palette("colorblind")
 
     data = []
-    algorithms = ["streed", "ost", "ctree"]
-    algorithm_name = {"ost": "OST", "streed": "SurTree", "ctree": "CTree"}
+    algorithms = ["streed", "ost", "ctree", "streed_nod2"]
+    algorithm_name = {"ost": "OST", "streed": "SurTree", "streed_nod2": "SurTree no D2", "ctree": "CTree"}
     for algorithm in algorithms:
         with open(f"{DIRECTORY}/output/{algorithm}_output.csv") as f:
             lines = f.read().strip().split("\n")
             for line in lines[1:]:
                 _, settings, _results = [eval(j) for j in line.split(";")]
-                if _results["runtime"] >= 600 or _results["runtime"] < -1e6:
-                    _results["runtime"] = 1200
+                if _results["runtime"] >= 600 or _results["runtime"] < -50:
+                    _results["runtime"] = 2000
                 results = {key: _results[key] for key in ["runtime", "num_nodes", "integrated_brier_score_ratio"]}
-                results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "mode", "cost-complexity"]})
+                results.update({key: settings[key] for key in ["max-depth","max-num-nodes", "hyper-tune", "cost-complexity"]})
                 results["dataset"] = settings["file"].replace("train/","")
                 results["method"] = algorithm_name[algorithm]
                 results.update({"train_"+key: _results["train"][key] for key in ["objective_score", "concordance_score"]})
@@ -67,20 +69,18 @@ def main():
         df.loc[df["dataset"] == dataset, "censoring_category"] = censoring_category
 
 
-    #df["method_f"] = df[['method', "n_features"]].apply(lambda row: f"{row['method']} ({int(row['n_features']):d} features)", axis=1)
-    df["method_f"] = df[['method', "n_features"]].apply(lambda row: f"{row['method']} (f={int(row['n_features']/6):d})", axis=1)
+    df["Features"] = df[["n_features"]].apply(lambda row: f"f={int(row['n_features']/6):d}", axis=1)
+    df["Method"] = df["method"]
 
-    #method_order = ["CTree (6 features)", "CTree (12 features)", "OST (6 features)", "OST (12 features)", "SurTree (6 features)", "SurTree (12 features)"]
-    method_order = ["CTree (f=1)", "CTree (f=2)", "OST (f=1)", "OST (f=2)", "SurTree (f=1)", "SurTree (f=2)"]
-    
-    plt.figure(figsize=(3.3+0.3, 1.6))
+    plt.figure(figsize=(3.3+0.3, 1.7))
 
     g = sns.lineplot(data = df, x="max-depth", y='runtime',
-                 hue="method_f", hue_order=method_order,
-                 style='method_f', style_order=method_order
+                 hue="Method", hue_order=["SurTree", "SurTree no D2", "OST", "CTree"],
+                 style='Features', style_order=["f=1", "f=2"]
                 )
     g.set_yscale("log")
     g.set_xlim(2, 5)
+    g.set_ylim(0.1, 600)
     g.set_ylabel("Run time (s)")
     g.set_xlabel("Maximum depth")
 
@@ -90,6 +90,18 @@ def main():
     plt.tight_layout()
     #plt.show()
     plt.savefig(f"{DIRECTORY}/plots/runtime_d.pdf", bbox_inches="tight", pad_inches = 0)
+
+
+    # remove time-outs
+    rts = df.groupby(["dataset", "method", "max-depth", "Features"])["runtime"].mean().unstack("method")
+    instances_within_time_out_ix = np.column_stack([rts[m] <= 600 for m in ["SurTree", "SurTree no D2"]]).all(axis=1)
+    instances_within_time_out = pd.Series(instances_within_time_out_ix, index=rts.index)
+    df = df[df.apply(lambda x: instances_within_time_out.loc[x["dataset"], x["max-depth"], x["Features"]], axis=1)]
+
+
+    gr = df.groupby(["dataset", "method", "max-depth", "Features"])["runtime"].mean().unstack("method")
+
+    print("Gain from special d2-solver: ", gmean(gr["SurTree no D2"] / gr["SurTree"]))
 
 if __name__ == "__main__":
     main()

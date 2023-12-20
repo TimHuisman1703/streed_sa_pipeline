@@ -1,10 +1,22 @@
 from math import log, exp
 import os
+import warnings
 
 DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 ORIGINAL_DIRECTORY = f"{DIRECTORY}/datasets/original"
 NUMERIC_DIRECTORY = f"{DIRECTORY}/datasets/numeric"
 BINARY_DIRECTORY = f"{DIRECTORY}/datasets/binary"
+
+# Reads the settings from a filename and returns them as maps
+# The file must be formatted with one JSON object on each individual line
+#
+# filename      The path to the settings file
+def parse_settings(filename):
+    f = open(filename)
+    settings = [eval(j) for j in f.read().strip().split("\n")]
+    f.close()
+
+    return settings
 
 def parse_value(value):
     for op in [int, float, str]:
@@ -30,7 +42,8 @@ def nelson_aalen(instances):
             ts[t] = [0, 0]
         ts[t][d] += 1
 
-    d = {0: 0}
+    #d = {0: 0}
+    d = {0: 1 / (len(instances) + 1)}
     at_risk = len(instances)
     sum = 0
     for t in sorted(ts.keys()):
@@ -115,8 +128,8 @@ class Instance:
 
 def calculate_theta(events, hazards):
     if len(events) == 0:
-        assert(False)
-        return -1
+        warnings.warn("encountered empty leaf node.")
+        return 1
 
     numerator = max(0.5, sum(events))
     denominator = sum(hazards)

@@ -67,17 +67,6 @@ def prepare_parameters(parameters):
 
     return [parameters]
 
-# Reads the settings from a filename and returns them as maps
-# The file must be formatted with one JSON object on each individual line
-#
-# filename      The path to the settings file
-def parse_settings(filename):
-    f = open(filename)
-    settings = [eval(j) for j in f.read().strip().split("\n")]
-    f.close()
-
-    return settings
-
 def main():
     PARAM_OPTIONS = {
         "file": [
